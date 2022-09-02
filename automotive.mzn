@@ -25,12 +25,15 @@ array[NUM_LINKS] of int: to;
 array[NUM_LINKS] of int: capacity;
 array[NUM_LINKS] of var int: slack;
 
+% `in_shortest_path[edge, a, b]` is `true` if the edge is on the shortest path from `a` to `b`.
+array[NUM_LINKS, LOCATIONS, LOCATIONS] of bool: in_shortest_path;
+
 % Network load constraint: for each network link, its occupancy by services' communications should not exceed its capacity.
 % We first compute the slack of each link.
 constraint forall(link in NUM_LINKS)(
             slack[link] = capacity[link] -
               sum(s1,s2 in SERVICES)(
-                services_com[s1,s2] * in_shortest_path(link, services2locs[s1], services2locs[s2])
+                services_com[s1,s2] * in_shortest_path[link, services2locs[s1], services2locs[s2]]
               ));
 
 % Then we ensure the slack is always greater or equal to 0.
