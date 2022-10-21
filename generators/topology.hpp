@@ -1,50 +1,19 @@
+// Copyright 2022 Pierre Talbot
+
+#ifndef TOPOLOGY_HPP
+#define TOPOLOGY_HPP
+
 #include <vector>
 #include <iostream>
 #include <string>
-#include <fstream>
-#include <sstream>
-#include <streambuf>
 #include <map>
 #include <cassert>
 #include <limits>
 #include <iterator>
 #include <algorithm>
+#include <regex>
 
 using namespace std;
-
-string read_line(ifstream& t) {
-  string line;
-  bool read = static_cast<bool>(getline(t, line));
-  assert(read);
-  return std::move(line);
-}
-
-vector<string> read_until(ifstream& t, const string& last) {
-  string line;
-  vector<string> res;
-  while(getline(t, line) && line != last) {
-    res.push_back(std::move(line));
-  }
-  assert(line == last);
-  return res;
-}
-
-// https://stackoverflow.com/a/10861816/2231159
-vector<string> split_on(const string& line, char delim) {
-  stringstream ss(line);
-  vector<string> result;
-  while(ss.good())
-  {
-    string substr;
-    getline(ss, substr, delim);
-    result.push_back(substr);
-  }
-  return result;
-}
-
-vector<string> split_csv(const string& line) {
-  return split_on(line, ';');
-}
 
 struct LinkString {
   string from;
@@ -100,7 +69,6 @@ class Network {
   void initialize_communications(const vector<ServiceComString>& raw_coms) {
     vector<ServiceCom> services;
     // For each processor, provide the list of services allocated (by default) on it.
-    // Although that shouldn't be possible, the topology files currently give a service that is allocated on several processors.
     vector<vector<int>> procs(idx2node.size());
     for(const auto& com : raw_coms) {
       if(!service2idx.contains(com.service)) {
@@ -245,6 +213,21 @@ public:
     }
   }
 
+  vector<string> routing_path(const string& from, const string& to) const {
+    vector<string> path;
+    path.push_back(from);
+    for(int edge : all_shortest_paths[node2idx.at(from)][node2idx.at(to)]) {
+      if(path.back() == idx2node.at(links[edge].to)) {
+        path.push_back(idx2node.at(links[edge].from));
+      }
+      else {
+        assert(path.back() == idx2node.at(links[edge].from));
+        path.push_back(idx2node.at(links[edge].to));
+      }
+    }
+    return path;
+  }
+
   void print_dzn() const {
     cout << "locations = " << dist.size() << ";" << endl;
     cout << "cpu_capacity = [";
@@ -300,14 +283,19 @@ public:
       }
     }
     cout << "|];" << endl;
+    cout << "services2names = [" ;
+    for(int i = 0; i < idx2service.size(); ++i) {
+      cout << "\"" << idx2service[i] << "\"" << (i+1 == idx2service.size() ? "];\n" : ", ");
+    }
+    cout << "locations2names = [";
+    for(int i = 0; i < idx2node.size(); ++i) {
+      cout << "\"" << idx2node[i] << "\"" << (i+1 == idx2node.size() ? "];\n" : ", ");
+    }
   }
 };
 
-int main(int argc, char** argv) {
-  if(argc != 2) {
-    cout << "usage: " << argv[0] << " <network-topology.csv>";
-  }
-  ifstream t(argv[1]);
+Network read_network(const char* filename) {
+  istringstream t(read_file(filename));
   read_until(t, "[Nodes]");
   read_until(t, "[Name]");
   vector<string> nodes = read_until(t, "[EthernetTopology]");
@@ -328,7 +316,7 @@ int main(int argc, char** argv) {
   vector<ServiceComString> coms;
   for(const auto& com : read_until(t, "[EthernetRouting]")) {
     auto csv_line = split_csv(com);
-    auto service_name = split_on(csv_line[0], '_')[0];
+    auto service_name = csv_line[0];
     int data = stoi(csv_line[8]);
     bool burst = csv_line[3] == "PeriodicBursts";
     if(burst) {
@@ -338,11 +326,12 @@ int main(int argc, char** argv) {
     coms.push_back(ServiceComString(service_name, csv_line[10], csv_line[12], data * freq * 8));
   }
   Network network(nodes, routers, links, coms);
-  network.print_input_network();
+  // network.print_input_network();
   network.floyd_warshall();
   // cout << "Floyd Washall algorithm terminated." << endl;
   // network.print_floyd_matrices();
   network.build_all_shortest_paths();
-  // cout << "All shortest paths construction terminated." << endl;
-  network.print_dzn();
+  return network;
 }
+
+#endif

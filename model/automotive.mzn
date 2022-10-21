@@ -11,12 +11,15 @@ array[SERVICES] of var LOCATIONS: services2locs;
 array[SERVICES] of int: cpu_service;
 array[SERVICES, SERVICES] of int: coms; % communication
 
+array[LOCATIONS] of string: locations2names;
+array[SERVICES] of string: services2names;
+
 % CPU load constraint: do not exceed the capacity of each CPU.
 constraint forall(l in LOCATIONS)
                  (cpu_usage[l] =
                     sum(s in SERVICES)
                        (cpu_service[s] * (services2locs[s] == l)));
-constraint forall(l in LOCATIONS)(cpu_capacity[l] >= cpu_usage[l]);
+constraint forall(l in LOCATIONS)(cpu_usage[l] >= 0 /\ cpu_usage[l] <= cpu_capacity[l]);
 
 int: num_links;
 set of int: NUM_LINKS = 1..num_links;
@@ -37,8 +40,27 @@ constraint forall(link in NUM_LINKS)(
               ));
 
 % Then we ensure the slack is always greater or equal to 0.
-constraint forall(link in NUM_LINKS)(slack[link] >= 0);
+constraint forall(link in NUM_LINKS)(slack[link] >= 0 /\ slack[link] <= capacity[link]);
 
-% Note that the objectives should be normalized using weight.
-solve maximize (min(link in NUM_LINKS)(slack[link]));
-%               + min(l in LOCATIONS)(cpu_usage[l]));
+array[NUM_LINKS] of var 0..100: charge;
+constraint forall(link in NUM_LINKS)(charge[link] == (capacity[link] - slack[link]) div (capacity[link] div 100));
+
+% var int: w = min(link in NUM_LINKS)(slack[link] div 100) * min(l in LOCATIONS)((100-cpu_usage[l]));
+var int: w1 = max(link in NUM_LINKS)(charge[link]);
+var int: w2 = max(l in LOCATIONS)(cpu_usage[l]);
+var int: w = w1 * w2;
+ solve :: int_search(services2locs, first_fail, indomain_random)
+% solve :: int_search(services2locs, first_fail, indomain_min)
+%solve :: int_search(services2locs, dom_w_deg, indomain_random)
+minimize w;
+
+output
+  ["w = \(w); \n"] ++
+  ["link_objective = \(w1); \n"] ++
+  ["cpu_objective = \(w2); \n"] ++
+  ["services2locs = \(services2locs);\n"] ++
+  ["locations2names = \(locations2names);\n"] ++
+  ["services2names = \(services2names);\n"] ++
+  ["cpu_usage = \(cpu_usage); \n"] ++
+  ["slack = \(slack); \n"] ++
+  ["charge = \(charge); \n"];

@@ -1,0 +1,293 @@
+[RTaW-SwitchEth-Csv-Format];2.0
+[NodeSet]
+[Name];NodeSet
+[TxStackConfigs]
+[QueuesTxTimings]
+[Name];[Ignore Priorities];[Emission Pauses (byte)]
+TxTiming (2);false;
+[Nodes]
+[Name]
+ECU1
+ECU2
+ECU3
+DM1
+DM2
+DM3
+CAM1
+CAM2
+CAM3
+CAM4
+Display1
+Display2
+Display3
+Display4
+[EthernetTopology]
+[Name];Topology
+[NodeSet];NodeSet
+[Routers]
+[Name];[Switching (us)];[Memory (byte)]
+Switch1;15;
+Switch2;15;
+Switch3;15;
+Switch4;15;
+Switch5;15;
+[Wired Links]
+[Name];[End1];[Interface1];[End2];[Interface2];[Speed (Mbit/s)];[Bit Traversal Time]
+CAM1<->Switch1;CAM1;P1;Switch1;P1;100;
+CAM2<->Switch1;CAM2;P1;Switch1;P2;100;
+CAM3<->Switch1;CAM3;P1;Switch1;P3;100;
+Display1<->Switch4;Display1;P1;Switch4;P1;100;
+Switch4<->Switch2;Switch4;P2;Switch2;P2;100;
+Switch2<->Switch1;Switch2;P3;Switch1;P4;100;
+Switch4<->Dispaly2;Switch4;P0;Display2;P1;100;
+ECU1<->Switch2;ECU1;P1;Switch2;P4;100;
+Display3<->Switch5;Display3;P1;Switch5;P2;100;
+Display4<->Switch5;Display4;P1;Switch5;P3;100;
+Switch5<->Switch3;Switch5;P1;Switch3;P2;100;
+Switch3<->Switch2;Switch3;P1;Switch2;P1;100;
+CAM4<->Switch3;CAM4;P1;Switch3;P3;100;
+ECU2<->Switch3;ECU2;P1;Switch3;P4;100;
+ECU3<->Switch3;ECU3;P1;Switch3;P5;100;
+DM3<->Switch3;DM3;P1;Switch3;P0;1000;
+DM2<->Switch2;DM2;P1;Switch2;P0;100;
+DM1<->Switch1;DM1;P1;Switch1;P5;100;
+[GenericSyncConfig];[ClockPrecision];[ClockConfig]
+[AVBTrafficClasses]
+[Name];[CMI (us)];[MIF];[MFS (byte)];[SizeType]
+CMI=1333us for 'Audio' (Precise ).;1333;1;404;ETHERNET_FRAME_SIZE_QTAG
+CMI=250us for 'Video' (Precise ).;250;1;688;ETHERNET_FRAME_SIZE_QTAG
+[EthernetComNeed]
+[Name];TST[75 frames] FrameComNeed
+[NodeSet];NodeSet
+[SenderReceiverMap];Sender Receiver Map
+[TrafficClasses]
+[Name];TrafficConfiguration
+[TrafficClassConfiguration]
+[Name];[Priority];[SchedulingPolicy];[PolicyConfig];[Express]
+C&C;6;FIFO;;false
+Audio;5;FIFO;;false
+Video;4;FIFO;;false
+BE;1;FIFO;;false
+[Frames]
+[Name];[Vlan(id)];[Priority];[ArrivalType];[MinDistance (ms)];[MaxDistance (ms)];[SizeType];[Min Size (byte)];[MaxSize (byte)];[BurstSize];[Sender];[Producer];[Receiver];[Consumer];[Latency (ms)]
+S1_C&C_1_1;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;CAM1;;Display1;FFN;10
+S3_Video_1;;4;PeriodicBursts;33.333;;AVTP_PAYLOAD_H264_CVF;720;720;45;CAM1;;CAM3;FFN;30
+S4_BE_1;;1;Periodic;200;;ETHERNET_FRAME_SIZE_QTAG;558;558;;CAM1;;ECU2;FFN;
+S4_BE_2;;1;Periodic;100;;ETHERNET_FRAME_SIZE_QTAG;64;64;;CAM1;;CAM4;FFN;
+S1_C&C_2_1;;6;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;256;256;;CAM2;;Display2;FFN;10
+S4_BE_3;;1;Periodic;1000;;ETHERNET_FRAME_SIZE_QTAG;1000;1000;;CAM2;;ECU2;FFN;
+S3_Video_2;;4;PeriodicBursts;16.666;;AVTP_PAYLOAD_H264_CVF;740;740;50;CAM2;;Display3;FFN;20
+S2_Audio_1;;5;Periodic;1.333;;AVTP_PAYLOAD_IEC_61883;300;300;;CAM2;;Display4;FFN;5
+S4_BE_4;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM3;;ECU1;FFN;
+S4_BE_4;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM3;;CAM2;FFN (2);
+S4_BE_4;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM3;;DM1;FFN (3);
+S4_BE_4;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM3;;Display1;FFN (4);
+S1_C&C_2_2;;6;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;256;256;;CAM3;;CAM1;FFN;10
+S4_BE_5;;1;Periodic;1000;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM3;;ECU1;FFN;
+S4_BE_5;;1;Periodic;1000;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM3;;DM3;FFN (2);
+S4_BE_5;;1;Periodic;1000;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM3;;ECU3;FFN (3);
+S4_BE_6;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;558;558;;CAM3;;CAM1;FFN;
+S4_BE_7;;1;Periodic;1000;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM3;;Display2;FFN;
+S4_BE_7;;1;Periodic;1000;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM3;;Display4;FFN (2);
+S4_BE_7;;1;Periodic;1000;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM3;;ECU1;FFN (3);
+S1_C&C_1_2;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;CAM3;;Display3;FFN;10
+S1_C&C_1_3;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;CAM3;;CAM1;FFN;10
+S1_C&C_1_3;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;CAM3;;Display2;FFN (2);10
+S1_C&C_1_4;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;Display1;;CAM1;FFN;10
+S1_C&C_1_4;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;Display1;;Display2;FFN (2);10
+S4_BE_8;;1;Periodic;100;;ETHERNET_FRAME_SIZE_QTAG;64;64;;Display1;;DM3;FFN;
+S2_Audio_2;;5;Periodic;1.333;;AVTP_PAYLOAD_IEC_61883;250;250;;Display1;;ECU3;FFN;5
+S2_Audio_3;;5;Periodic;1.333;;AVTP_PAYLOAD_IEC_61883;350;350;;Display1;;Display4;FFN;5
+S3_Video_3;;4;PeriodicBursts;16.666;;AVTP_PAYLOAD_H264_CVF;740;740;50;Display1;;Display2;FFN;20
+S1_C&C_1_5;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;Display1;;CAM2;FFN;10
+S1_C&C_1_5;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;Display1;;CAM1;FFN (2);10
+S4_BE_9;;1;Periodic;1000;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;Display1;;CAM4;FFN;
+S4_BE_9;;1;Periodic;1000;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;Display1;;ECU1;FFN (2);
+S4_BE_9;;1;Periodic;1000;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;Display1;;CAM3;FFN (3);
+S4_BE_10;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;Display1;;CAM1;FFN;
+S4_BE_10;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;Display1;;DM3;FFN (2);
+S4_BE_10;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;Display1;;Display2;FFN (3);
+S4_BE_10;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;Display1;;ECU3;FFN (4);
+S2_Audio_4;;5;Periodic;1.333;;AVTP_PAYLOAD_IEC_61883;250;250;;Display1;;CAM4;FFN;5
+S4_BE_11;;1;Periodic;1000;;ETHERNET_FRAME_SIZE_QTAG;1000;1000;;Display1;;ECU2;FFN;
+S4_BE_11;;1;Periodic;1000;;ETHERNET_FRAME_SIZE_QTAG;1000;1000;;Display1;;DM3;FFN (2);
+S4_BE_11;;1;Periodic;1000;;ETHERNET_FRAME_SIZE_QTAG;1000;1000;;Display1;;CAM3;FFN (3);
+S1_C&C_1_6;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;Display2;;DM3;FFN;10
+S3_Video_4;;4;PeriodicBursts;33.333;;AVTP_PAYLOAD_H264_CVF;721;721;45;ECU1;;DM2;FFN;30
+S4_BE_12;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;ECU1;;ECU2;FFN;
+S1_C&C_1_7;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;Display3;;CAM4;FFN;10
+S1_C&C_1_7;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;Display3;;Display2;FFN (2);10
+S1_C&C_2_3;;6;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;256;256;;Display3;;CAM4;FFN;10
+S3_Video_5;;4;PeriodicBursts;33.333;;AVTP_PAYLOAD_H264_CVF;733;733;25;Display3;;CAM4;FFN;30
+S3_Video_6;;4;PeriodicBursts;33.333;;AVTP_PAYLOAD_H264_CVF;727;727;25;Display3;;CAM3;FFN;30
+S3_Video_7;;4;PeriodicBursts;33.333;;AVTP_PAYLOAD_H264_CVF;723;723;40;Display4;;Display2;FFN;30
+S1_C&C_1_8;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;Display4;;Display3;FFN;10
+S4_BE_13;;1;Periodic;100;;ETHERNET_FRAME_SIZE_QTAG;64;64;;Display4;;CAM2;FFN;
+S2_Audio_5;;5;Periodic;1.333;;AVTP_PAYLOAD_IEC_61883;300;300;;Display4;;DM2;FFN;10
+S1_C&C_2_4;;6;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;256;256;;Display4;;DM2;FFN;10
+S1_C&C_2_5;;6;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;256;256;;Display4;;Display3;FFN;10
+S1_C&C_1_9;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;CAM4;;CAM1;FFN;10
+S1_C&C_1_9;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;CAM4;;DM2;FFN (2);10
+S2_Audio_6;;5;Periodic;1.333;;AVTP_PAYLOAD_IEC_61883;300;300;;CAM4;;CAM2;FFN;5
+S4_BE_14;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM4;;DM1;FFN;
+S4_BE_14;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM4;;ECU1;FFN (2);
+S4_BE_14;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM4;;DM3;FFN (3);
+S4_BE_14;;1;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;1400;1400;;CAM4;;CAM2;FFN (4);
+S4_BE_15;;1;Periodic;200;;ETHERNET_FRAME_SIZE_QTAG;558;558;;CAM4;;DM3;FFN;
+S1_C&C_2_6;;6;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;256;256;;CAM4;;DM1;FFN;10
+S1_C&C_1_10;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;ECU2;;DM2;FFN;10
+S1_C&C_1_10;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;ECU2;;Display3;FFN (2);10
+S1_C&C_1_11;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;ECU2;;CAM4;FFN;10
+S1_C&C_1_11;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;ECU2;;CAM2;FFN (2);10
+S2_Audio_7;;5;Periodic;1.333;;AVTP_PAYLOAD_IEC_61883;300;300;;ECU3;;DM3;FFN;5
+S1_C&C_2_7;;6;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;256;256;;ECU3;;CAM1;FFN;10
+S1_C&C_1_12;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;ECU3;;ECU2;FFN;10
+S1_C&C_1_12;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;ECU3;;Display2;FFN (2);10
+S3_Video_8;;4;PeriodicBursts;16.666;;AVTP_PAYLOAD_H264_CVF;740;740;50;ECU3;;CAM3;FFN;20
+S1_C&C_2_8;;6;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;256;256;;ECU3;;Display4;FFN;10
+S1_C&C_1_13;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;ECU3;;Display2;FFN;10
+S3_Video_9;;4;PeriodicBursts;33.333;;AVTP_PAYLOAD_H264_CVF;726;726;35;ECU3;;Display3;FFN;30
+S4_BE_16;;1;Periodic;100;;ETHERNET_FRAME_SIZE_QTAG;64;64;;DM3;;CAM2;FFN;
+S1_C&C_1_14;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM3;;DM1;FFN;10
+S1_C&C_1_14;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM3;;CAM2;FFN (2);10
+S4_BE_17;;1;Periodic;200;;ETHERNET_FRAME_SIZE_QTAG;558;558;;DM3;;ECU2;FFN;
+S1_C&C_1_15;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM3;;ECU3;FFN;10
+S1_C&C_1_15;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM3;;CAM2;FFN (2);10
+S2_Audio_8;;5;Periodic;1.333;;AVTP_PAYLOAD_IEC_61883;250;250;;DM2;;CAM1;FFN;5
+S1_C&C_2_9;;6;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM2;;ECU2;FFN;10
+S1_C&C_2_10;;6;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM2;;Display4;FFN;10
+S4_BE_18;;1;Periodic;100;;ETHERNET_FRAME_SIZE_QTAG;64;64;;DM2;;CAM2;FFN;
+S1_C&C_1_16;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM2;;CAM1;FFN;10
+S1_C&C_1_16;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM2;;ECU3;FFN (2);10
+S3_Video_10;;4;PeriodicBursts;16.666;;AVTP_PAYLOAD_H264_CVF;740;740;50;DM2;;Display3;FFN;20
+S2_Audio_9;;5;Periodic;1.333;;AVTP_PAYLOAD_IEC_61883;300;300;;DM2;;Display2;FFN;5
+S4_BE_19;;1;Periodic;100;;ETHERNET_FRAME_SIZE_QTAG;64;64;;DM2;;ECU1;FFN;
+S4_BE_20;;1;Periodic;200;;ETHERNET_FRAME_SIZE_QTAG;558;558;;DM2;;DM1;FFN;
+S4_BE_21;;1;Periodic;200;;ETHERNET_FRAME_SIZE_QTAG;558;558;;DM2;;Display2;FFN;
+S1_C&C_1_17;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM2;;DM1;FFN;10
+S1_C&C_1_17;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM2;;Display4;FFN (2);10
+S1_C&C_1_18;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM1;;Display3;FFN;10
+S1_C&C_1_18;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM1;;CAM1;FFN (2);10
+S2_Audio_10;;5;Periodic;1.333;;AVTP_PAYLOAD_IEC_61883;300;300;;DM1;;Display4;FFN;10
+S1_C&C_2_11;;6;Periodic;500;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM1;;Display4;FFN;10
+S3_Video_11;;4;PeriodicBursts;33.333;;AVTP_PAYLOAD_H264_CVF;721;721;30;DM1;;DM3;FFN;30
+S3_Video_12;;4;PeriodicBursts;33.333;;AVTP_PAYLOAD_H264_CVF;720;720;20;DM1;;Display4;FFN;30
+S3_Video_13;;4;PeriodicBursts;16.666;;AVTP_PAYLOAD_H264_CVF;740;740;50;DM1;;ECU3;FFN;20
+S4_BE_22;;1;Periodic;100;;ETHERNET_FRAME_SIZE_QTAG;64;64;;DM1;;DM2;FFN;
+S1_C&C_1_19;;6;Periodic;10;;ETHERNET_FRAME_SIZE_QTAG;256;256;;DM1;;DM2;FFN;10
+[EthernetRouting]
+[Name];TST[75 frames] Routing
+[Topology];Topology
+[ComNeed];TST[75 frames] FrameComNeed
+[SenderReceiverMap];Sender Receiver Map
+[Type];TREE_PATHS
+[Routing Paths]
+[Frames]
+S1_C&C_1_1;CAM1;Switch1;Switch2;Switch4;Display1
+S3_Video_1;CAM1;Switch1;CAM3
+S4_BE_1;CAM1;Switch1;Switch2;Switch3;ECU2
+S4_BE_2;CAM1;Switch1;Switch2;Switch3;CAM4
+S1_C&C_2_1;CAM2;Switch1;Switch2;Switch4;Display2
+S4_BE_3;CAM2;Switch1;Switch2;Switch3;ECU2
+S3_Video_2;CAM2;Switch1;Switch2;Switch3;Switch5;Display3
+S2_Audio_1;CAM2;Switch1;Switch2;Switch3;Switch5;Display4
+S4_BE_4;CAM3;Switch1;Switch2;ECU1
+S4_BE_4;CAM3;Switch1;CAM2
+S4_BE_4;CAM3;Switch1;DM1
+S4_BE_4;CAM3;Switch1;Switch2;Switch4;Display1
+S1_C&C_2_2;CAM3;Switch1;CAM1
+S4_BE_5;CAM3;Switch1;Switch2;ECU1
+S4_BE_5;CAM3;Switch1;Switch2;Switch3;DM3
+S4_BE_5;CAM3;Switch1;Switch2;Switch3;ECU3
+S4_BE_6;CAM3;Switch1;CAM1
+S4_BE_7;CAM3;Switch1;Switch2;Switch4;Display2
+S4_BE_7;CAM3;Switch1;Switch2;Switch3;Switch5;Display4
+S4_BE_7;CAM3;Switch1;Switch2;ECU1
+S1_C&C_1_2;CAM3;Switch1;Switch2;Switch3;Switch5;Display3
+S1_C&C_1_3;CAM3;Switch1;CAM1
+S1_C&C_1_3;CAM3;Switch1;Switch2;Switch4;Display2
+S1_C&C_1_4;Display1;Switch4;Switch2;Switch1;CAM1
+S1_C&C_1_4;Display1;Switch4;Display2
+S4_BE_8;Display1;Switch4;Switch2;Switch3;DM3
+S2_Audio_2;Display1;Switch4;Switch2;Switch3;ECU3
+S2_Audio_3;Display1;Switch4;Switch2;Switch3;Switch5;Display4
+S3_Video_3;Display1;Switch4;Display2
+S1_C&C_1_5;Display1;Switch4;Switch2;Switch1;CAM2
+S1_C&C_1_5;Display1;Switch4;Switch2;Switch1;CAM1
+S4_BE_9;Display1;Switch4;Switch2;Switch3;CAM4
+S4_BE_9;Display1;Switch4;Switch2;ECU1
+S4_BE_9;Display1;Switch4;Switch2;Switch1;CAM3
+S4_BE_10;Display1;Switch4;Switch2;Switch1;CAM1
+S4_BE_10;Display1;Switch4;Switch2;Switch3;DM3
+S4_BE_10;Display1;Switch4;Display2
+S4_BE_10;Display1;Switch4;Switch2;Switch3;ECU3
+S2_Audio_4;Display1;Switch4;Switch2;Switch3;CAM4
+S4_BE_11;Display1;Switch4;Switch2;Switch3;ECU2
+S4_BE_11;Display1;Switch4;Switch2;Switch3;DM3
+S4_BE_11;Display1;Switch4;Switch2;Switch1;CAM3
+S1_C&C_1_6;Display2;Switch4;Switch2;Switch3;DM3
+S3_Video_4;ECU1;Switch2;DM2
+S4_BE_12;ECU1;Switch2;Switch3;ECU2
+S1_C&C_1_7;Display3;Switch5;Switch3;CAM4
+S1_C&C_1_7;Display3;Switch5;Switch3;Switch2;Switch4;Display2
+S1_C&C_2_3;Display3;Switch5;Switch3;CAM4
+S3_Video_5;Display3;Switch5;Switch3;CAM4
+S3_Video_6;Display3;Switch5;Switch3;Switch2;Switch1;CAM3
+S3_Video_7;Display4;Switch5;Switch3;Switch2;Switch4;Display2
+S1_C&C_1_8;Display4;Switch5;Display3
+S4_BE_13;Display4;Switch5;Switch3;Switch2;Switch1;CAM2
+S2_Audio_5;Display4;Switch5;Switch3;Switch2;DM2
+S1_C&C_2_4;Display4;Switch5;Switch3;Switch2;DM2
+S1_C&C_2_5;Display4;Switch5;Display3
+S1_C&C_1_9;CAM4;Switch3;Switch2;Switch1;CAM1
+S1_C&C_1_9;CAM4;Switch3;Switch2;DM2
+S2_Audio_6;CAM4;Switch3;Switch2;Switch1;CAM2
+S4_BE_14;CAM4;Switch3;Switch2;Switch1;DM1
+S4_BE_14;CAM4;Switch3;Switch2;ECU1
+S4_BE_14;CAM4;Switch3;DM3
+S4_BE_14;CAM4;Switch3;Switch2;Switch1;CAM2
+S4_BE_15;CAM4;Switch3;DM3
+S1_C&C_2_6;CAM4;Switch3;Switch2;Switch1;DM1
+S1_C&C_1_10;ECU2;Switch3;Switch2;DM2
+S1_C&C_1_10;ECU2;Switch3;Switch5;Display3
+S1_C&C_1_11;ECU2;Switch3;CAM4
+S1_C&C_1_11;ECU2;Switch3;Switch2;Switch1;CAM2
+S2_Audio_7;ECU3;Switch3;DM3
+S1_C&C_2_7;ECU3;Switch3;Switch2;Switch1;CAM1
+S1_C&C_1_12;ECU3;Switch3;ECU2
+S1_C&C_1_12;ECU3;Switch3;Switch2;Switch4;Display2
+S3_Video_8;ECU3;Switch3;Switch2;Switch1;CAM3
+S1_C&C_2_8;ECU3;Switch3;Switch5;Display4
+S1_C&C_1_13;ECU3;Switch3;Switch2;Switch4;Display2
+S3_Video_9;ECU3;Switch3;Switch5;Display3
+S4_BE_16;DM3;Switch3;Switch2;Switch1;CAM2
+S1_C&C_1_14;DM3;Switch3;Switch2;Switch1;DM1
+S1_C&C_1_14;DM3;Switch3;Switch2;Switch1;CAM2
+S4_BE_17;DM3;Switch3;ECU2
+S1_C&C_1_15;DM3;Switch3;ECU3
+S1_C&C_1_15;DM3;Switch3;Switch2;Switch1;CAM2
+S2_Audio_8;DM2;Switch2;Switch1;CAM1
+S1_C&C_2_9;DM2;Switch2;Switch3;ECU2
+S1_C&C_2_10;DM2;Switch2;Switch3;Switch5;Display4
+S4_BE_18;DM2;Switch2;Switch1;CAM2
+S1_C&C_1_16;DM2;Switch2;Switch1;CAM1
+S1_C&C_1_16;DM2;Switch2;Switch3;ECU3
+S3_Video_10;DM2;Switch2;Switch3;Switch5;Display3
+S2_Audio_9;DM2;Switch2;Switch4;Display2
+S4_BE_19;DM2;Switch2;ECU1
+S4_BE_20;DM2;Switch2;Switch1;DM1
+S4_BE_21;DM2;Switch2;Switch4;Display2
+S1_C&C_1_17;DM2;Switch2;Switch1;DM1
+S1_C&C_1_17;DM2;Switch2;Switch3;Switch5;Display4
+S1_C&C_1_18;DM1;Switch1;Switch2;Switch3;Switch5;Display3
+S1_C&C_1_18;DM1;Switch1;CAM1
+S2_Audio_10;DM1;Switch1;Switch2;Switch3;Switch5;Display4
+S1_C&C_2_11;DM1;Switch1;Switch2;Switch3;Switch5;Display4
+S3_Video_11;DM1;Switch1;Switch2;Switch3;DM3
+S3_Video_12;DM1;Switch1;Switch2;Switch3;Switch5;Display4
+S3_Video_13;DM1;Switch1;Switch2;Switch3;ECU3
+S4_BE_22;DM1;Switch1;Switch2;DM2
+S1_C&C_1_19;DM1;Switch1;Switch2;DM2
+[EthernetComConfig]
+[Name];[EthernetRouting];[TxTiming];[TrafficClasses];[Blocking (byte)];[FrameSchedule];[SignalFramePacking];[ServiceFrameMap];[ComPatternsConfig];[PDUFrameMap];[PDUTxOffsetConfig];[SignalPDUPacking];[ServiceSignalMap];[GatewayingConfig]
+1 ComConfig: TST[75 frames] Routing;TST[75 frames] Routing;TxTiming (2);TrafficConfiguration;;;;;;;;;;
