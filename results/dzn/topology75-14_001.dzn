@@ -1,0 +1,34 @@
+% Generated FlatZinc statistics:
+%%%mzn-stat: paths=220160
+%%%mzn-stat: flatBoolVars=2958
+%%%mzn-stat: flatIntVars=8729
+%%%mzn-stat: flatSetVars=5625
+%%%mzn-stat: flatIntConstraints=9704
+%%%mzn-stat: flatSetConstraints=7533
+%%%mzn-stat: evaluatedReifiedConstraints=2958
+%%%mzn-stat: method="minimize"
+%%%mzn-stat: flatTime=27.5616
+%%%mzn-stat-end
+w = 4368; 
+link_objective = 52; 
+cpu_objective = 84; 
+services2locs = [7, 4, 14, 12, 2, 9, 11, 10, 8, 13, 6, 4, 6, 9, 4, 4, 5, 3, 8, 6, 10, 1, 2, 3, 14, 7, 12, 10, 5, 9, 14, 6, 9, 14, 10, 14, 11, 14, 2, 3, 1, 2, 11, 8, 14, 4, 10, 12, 13, 3, 5, 13, 9, 6, 1, 13, 2, 3, 6, 5, 5, 1, 9, 1, 2, 9, 8, 6, 7, 7, 11, 3, 5, 1, 11];
+locations2names = ["ECU1", "ECU2", "ECU3", "DM1", "DM2", "DM3", "CAM1", "CAM2", "CAM3", "CAM4", "Display1", "Display2", "Display3", "Display4", "Switch1", "Switch2", "Switch3", "Switch4", "Switch5"];
+services2names = ["S1_C&C_1_1", "S4_BE_1", "S4_BE_2", "S3_Video_1", "S2_Audio_1", "S2_Audio_2", "S4_BE_3", "S1_C&C_1_2", "S3_Video_2", "S3_Video_3", "S2_Audio_3", "S4_BE_4", "S2_Audio_4", "S4_BE_5", "S4_BE_6", "S1_C&C_1_3", "S1_C&C_2_1", "S2_Audio_5", "S1_C&C_1_4", "S4_BE_7", "S1_C&C_1_5", "S4_BE_8", "S1_C&C_1_6", "S4_BE_9", "S1_C&C_1_7", "S1_C&C_1_8", "S3_Video_4", "S4_BE_10", "S4_BE_11", "S1_C&C_1_9", "S2_Audio_6", "S4_BE_12", "S4_BE_13", "S4_BE_14", "S2_Audio_7", "S3_Video_5", "S4_BE_15", "S4_BE_16", "S1_C&C_2_2", "S3_Video_6", "S2_Audio_8", "S1_C&C_1_10", "S4_BE_17", "S3_Video_7", "S1_C&C_1_11", "S4_BE_18", "S4_BE_19", "S4_BE_20", "S2_Audio_9", "S1_C&C_2_3", "S4_BE_21", "S4_BE_22", "S1_C&C_1_12", "S4_BE_23", "S1_C&C_1_13", "S1_C&C_1_14", "S1_C&C_2_4", "S2_Audio_10", "S4_BE_24", "S2_Audio_11", "S1_C&C_1_15", "S1_C&C_2_5", "S1_C&C_1_16", "S1_C&C_1_17", "S2_Audio_12", "S4_BE_25", "S2_Audio_13", "S4_BE_26", "S4_BE_27", "S1_C&C_1_18", "S1_C&C_2_6", "S1_C&C_2_7", "S1_C&C_2_8", "S4_BE_28", "S4_BE_29"];
+cpu_usage = [72, 72, 72, 60, 72, 84, 48, 48, 84, 60, 60, 36, 48, 84, 0, 0, 0, 0, 0]; 
+slack = [91966608, 85631680, 91589024, 97578688, 59617792, 80727328, 62039104, 95055344, 92266272, 82848960, 82468832, 47344656, 79270288, 76138528, 61072288, 994246720, 94487808, 89869616]; 
+charge = [8, 14, 8, 2, 40, 19, 37, 4, 7, 17, 17, 52, 20, 23, 38, 0, 5, 10]; 
+----------
+%%%mzn-stat: initTime=0.5895
+%%%mzn-stat: solveTime=32.5952
+%%%mzn-stat: solutions=7
+%%%mzn-stat: variables=17317
+%%%mzn-stat: propagators=17237
+%%%mzn-stat: propagations=8472632
+%%%mzn-stat: nodes=2514
+%%%mzn-stat: failures=1197
+%%%mzn-stat: restarts=0
+%%%mzn-stat: peakDepth=79
+%%%mzn-stat-end
+%%%mzn-stat: nSolutions=1
+%%%mzn-stat-end

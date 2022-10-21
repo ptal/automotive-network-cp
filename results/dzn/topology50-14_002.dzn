@@ -1,0 +1,34 @@
+% Generated FlatZinc statistics:
+%%%mzn-stat: paths=99366
+%%%mzn-stat: flatBoolVars=2014
+%%%mzn-stat: flatIntVars=4635
+%%%mzn-stat: flatSetVars=2500
+%%%mzn-stat: flatIntConstraints=5285
+%%%mzn-stat: flatSetConstraints=3814
+%%%mzn-stat: evaluatedReifiedConstraints=2014
+%%%mzn-stat: method="minimize"
+%%%mzn-stat: flatTime=12.4917
+%%%mzn-stat-end
+w = 1280; 
+link_objective = 16; 
+cpu_objective = 80; 
+services2locs = [7, 4, 14, 12, 2, 9, 11, 10, 8, 13, 6, 4, 6, 9, 4, 4, 5, 3, 8, 6, 10, 1, 2, 3, 14, 7, 12, 10, 5, 9, 14, 6, 9, 3, 1, 7, 12, 7, 5, 12, 8, 3, 14, 10, 8, 1, 2, 13, 1, 2];
+locations2names = ["ECU1", "ECU2", "ECU3", "DM1", "DM2", "DM3", "CAM1", "CAM2", "CAM3", "CAM4", "Display1", "Display2", "Display3", "Display4", "Switch1", "Switch2", "Switch3", "Switch4", "Switch5"];
+services2names = ["S4_BE_1", "S1_C&C_1_1", "S1_C&C_1_2", "S4_BE_2", "S3_Video_1", "S1_C&C_1_3", "S2_Audio_1", "S4_BE_3", "S4_BE_4", "S1_C&C_2_1", "S2_Audio_2", "S2_Audio_3", "S2_Audio_4", "S1_C&C_1_4", "S2_Audio_5", "S1_C&C_1_5", "S4_BE_5", "S1_C&C_1_6", "S3_Video_2", "S4_BE_6", "S4_BE_7", "S2_Audio_6", "S1_C&C_2_2", "S2_Audio_7", "S3_Video_3", "S2_Audio_8", "S4_BE_8", "S4_BE_9", "S1_C&C_1_7", "S3_Video_4", "S1_C&C_1_8", "S4_BE_10", "S4_BE_11", "S2_Audio_9", "S2_Audio_10", "S2_Audio_11", "S1_C&C_2_3", "S3_Video_5", "S2_Audio_12", "S1_C&C_2_4", "S2_Audio_13", "S1_C&C_1_9", "S1_C&C_1_10", "S4_BE_12", "S4_BE_13", "S1_C&C_1_11", "S4_BE_14", "S2_Audio_14", "S2_Audio_15", "S2_Audio_16"];
+cpu_usage = [80, 80, 80, 80, 60, 80, 80, 80, 80, 80, 20, 80, 40, 80, 0, 0, 0, 0, 0]; 
+slack = [97307952, 94406592, 92208000, 89020880, 88523056, 83731216, 99502176, 94771200, 98291104, 98752000, 97043104, 83865760, 89258048, 87638208, 94159680, 997796352, 97932544, 95367072]; 
+charge = [2, 5, 7, 10, 11, 16, 0, 5, 1, 1, 2, 16, 10, 12, 5, 0, 2, 4]; 
+----------
+%%%mzn-stat: initTime=0.308826
+%%%mzn-stat: solveTime=47.5828
+%%%mzn-stat: solutions=28
+%%%mzn-stat: variables=9154
+%%%mzn-stat: propagators=9099
+%%%mzn-stat: propagations=21828382
+%%%mzn-stat: nodes=13406
+%%%mzn-stat: failures=6610
+%%%mzn-stat: restarts=0
+%%%mzn-stat: peakDepth=67
+%%%mzn-stat-end
+%%%mzn-stat: nSolutions=1
+%%%mzn-stat-end

@@ -58,7 +58,7 @@ class Network {
   map<string, int> node2idx;
   vector<string> idx2node;
 
-  vector<vector<int>> dist;
+  vector<vector<long long int>> dist;
   vector<vector<int>> next;
 
   map<string, int> service2idx;
@@ -93,7 +93,13 @@ class Network {
     for(const auto& s : services) {
       for(int j = 0; j < s.to.size(); ++j) {
         int nodeIdx = s.to[j];
-        int randomService = procs[nodeIdx][next_service_on_proc[nodeIdx] % procs[nodeIdx].size()];
+        int randomService;
+        if(procs[nodeIdx].size() == 0) {
+          randomService = 0;
+        }
+        else {
+          randomService = procs[nodeIdx][next_service_on_proc[nodeIdx] % procs[nodeIdx].size()];
+        }
         next_service_on_proc[nodeIdx]++;
         coms[s.from][randomService] = s.speed[j];
       }
@@ -122,7 +128,7 @@ public:
       dist[i].resize(dist.size());
       next[i].resize(next.size());
       for(int j = 0; j < dist.size(); ++j) {
-        dist[i][j] = numeric_limits<int>::max() / 10;
+        dist[i][j] = numeric_limits<long long int>::max() / 100;
         next[i][j] = -1;
       }
     }
@@ -231,18 +237,21 @@ public:
   void print_dzn() const {
     cout << "locations = " << dist.size() << ";" << endl;
     cout << "cpu_capacity = [";
+    int total_capacity = 0;
     for(int i = 0; i < dist.size(); ++i) {
       if(i >= nodes.size()) {
         cout << "0"; // All switches have a CPU capacity of 0.
       }
       else {
-        cout << "100";
+        cout << 100;
+        total_capacity += 100;
       }
       cout << (i+1 == dist.size() ? "];\n" : ", ");
     }
     cout << "cpu_service = [";
+    int cpu_service = (total_capacity / (idx2service.size() * 5)) * 4;
     for(int i = 0; i < idx2service.size(); ++i) {
-      cout << "20";
+      cout << cpu_service;
       cout << (i+1 == idx2service.size() ? "];\n" : ", ");
     }
     cout << "services = " << service2idx.size() << ";" << endl;
