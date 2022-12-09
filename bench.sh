@@ -7,6 +7,9 @@ cd ..
 
 for f in data/dzn/*;
 do
-  minizinc -s --compiler-statistics -O3 --allow-unbounded-vars --solver org.gecode.gecode --time-limit 60000 model/automotive.mzn "$f" > "results/dzn/$(basename -- "$f")"
-  ./dzn2topology "data/raw-csv/$(basename -- "$f" .dzn).csv" "results/dzn/$(basename -- "$f")" > "results/raw-csv/$(basename -- "$f" .dzn).csv"
+  if [ -f $f ]
+  then
+    minizinc -s --compiler-statistics -O3 --allow-unbounded-vars --solver org.gecode.gecode --time-limit 3600000 model/automotive.mzn "$f" > "results/dzn/3600s-$(basename -- "$f")"
+    ./dzn2topology "data/raw-csv/$(basename -- "$f" .dzn).csv" "results/dzn/$(basename -- "$f")" > "results/raw-csv/$(basename -- "$f" .dzn).csv"
+  fi
 done

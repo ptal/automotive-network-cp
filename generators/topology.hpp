@@ -64,7 +64,7 @@ class Network {
   map<string, int> service2idx;
   vector<string> idx2service;
   vector<vector<int>> coms; // The speed in bits / second required between each service communication.
-
+  vector<string> receivers; // For all communications, record which receiver (a service) is assigned to the ith communication.
 
   void initialize_communications(const vector<ServiceComString>& raw_coms) {
     vector<ServiceCom> services;
@@ -102,6 +102,7 @@ class Network {
         }
         next_service_on_proc[nodeIdx]++;
         coms[s.from][randomService] = s.speed[j];
+        receivers.push_back(idx2service[randomService]);
       }
     }
   }
@@ -217,6 +218,10 @@ public:
         }
       }
     }
+  }
+
+  const string& receiver_of_communication(int com_no) const {
+    return receivers[com_no];
   }
 
   vector<string> routing_path(const string& from, const string& to) const {
