@@ -2,6 +2,7 @@
 
 #include "utility.hpp"
 #include "topology.hpp"
+#include <set>
 
 int main(int argc, char** argv) {
   if(argc != 3) {
@@ -44,15 +45,23 @@ int main(int argc, char** argv) {
   echo_until(t, "[Frames]");
   echo_line(t);
   vector<pair<string, pair<string,string>>> routes;
+  set<tuple<string, string, string>> frames_set; // service, source, target.
   int com_no = 0;
   for(const auto& com : read_until(t, "[EthernetRouting]")) {
     auto csv_line = split_csv(com);
     auto service_name = csv_line[0];
     csv_line[10] = locations2names[services2locs[names2services[service_name]]];
     csv_line[12] = locations2names[services2locs[names2services[network.receiver_of_communication(com_no)]]];
-    routes.push_back(pair(service_name, pair(csv_line[10], csv_line[12])));
-    for(int i = 0; i < csv_line.size(); ++i) {
-      cout << csv_line[i] << ((i+1 == csv_line.size()) ? "\n":";");
+    // In case the sender and receiver are on the same ECU, we do not add a line for those.
+    if(csv_line[10] != csv_line[12]) {
+      auto frame = std::make_tuple(csv_line[0], csv_line[10], csv_line[12]);
+      if(!frames_set.contains(frame)) {
+        frames_set.insert(frame);
+        routes.push_back(pair(service_name, pair(csv_line[10], csv_line[12])));
+        for(int i = 0; i < csv_line.size(); ++i) {
+          cout << csv_line[i] << ((i+1 == csv_line.size()) ? "\n":";");
+        }
+      }
     }
     com_no++;
   }
