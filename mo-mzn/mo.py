@@ -15,8 +15,8 @@ import argparse
 class Config:
   def __init__(self):
     parser = argparse.ArgumentParser(
-                prog = 'Multi-objective constraint programming with WCTT',
-                description = 'This program computes a Pareto front of the deployment problem on switch-based network.')
+                prog = 'cusolve_mo',
+                description = 'Multi-objective constraint programming with WCTT. This program computes a Pareto front of the deployment problem on switch-based network.')
     parser.add_argument('instance_name')
     parser.add_argument('--model_mzn', required=True)
     parser.add_argument('--objectives_dzn', required=True)
@@ -128,6 +128,8 @@ class ParetoFront:
       return f"objs[{i+1}] > {objs[i]}"
 
   def front_to_mzn(self):
+    if len(self.front) == 0:
+      return "constraint true;"
     cons = "constraint ("
     for i in range(len(self.front)):
       objs = self.front[i][0]
@@ -144,6 +146,9 @@ class ParetoFront:
   def print(self):
     for s in self.front:
       print(s[0])
+
+  def to_str(self):
+    return '{' + ','.join([str(s[0]) for s in self.front]) + '}'
 
 def create_output_dzn(config, res, sol_id):
   output_dzn = config.output_dzn(sol_id)
@@ -186,11 +191,28 @@ def create_conflict_max_charge(res):
       max_i = i
   return f"charge[{max_i+1}] < {max_charge}"
 
-def create_conflict_alloc(instance, service_name, res):
+def get_index_loc_from_name(instance, service_name, res):
   services2names = instance["services2names"]
   i = services2names.index(service_name)
   loc = res["services2locs"][i]
+  return i, loc
+
+def create_conflict_alloc(instance, service_name, res):
+  i, loc = get_index_loc_from_name(instance, service_name, res)
   return f"services2locs[{i+1}] != {loc}"
+
+def create_hop_conflict(instance, service_name, res):
+  i1, loc1 = get_index_loc_from_name(instance, service_name, res)
+  i2 = -1
+  loc2 = 0
+  for x in range(len(instance["coms"][i1])):
+    loc2 = res["services2locs"][x]
+    if instance["coms"][i1][x] != 0 and loc1 != loc2:
+      i2 = x
+      break
+  if i2 == -1:
+    exit("Bug, a service has no communication in coms, but still had a negative delay for a communication...")
+  return f"card(shortest_path[services2locs[{i1+1}], services2locs[{i2+1}]]) < card(shortest_path[{loc1},{loc2}])"
 
 def analyse_wctt_result(config, instance, res, sol_id):
   with open(config.wctt_analysis_output(sol_id), 'r') as fanalysis:
@@ -200,10 +222,11 @@ def analyse_wctt_result(config, instance, res, sol_id):
     for row in wctt:
       # if the column slack is empty, it means the frame is scheduled using a best-effort strategy so no hard deadline.
       if row["Slack(ms)"] != '' and float(row["Slack(ms)"]) < 0:
-        print(row["Name"] + ";" + row["Routing"] + ";" +row["Slack(ms)"])
+        print("WCTT: " + row["Name"] + ";" + row["Routing"] + ";" +row["Slack(ms)"])
         # return create_conflict_charge(res)
         # return create_conflict_max_charge(res)
-        return create_conflict_alloc(instance, row["Name"], res)
+        # return create_conflict_alloc(instance, row["Name"], res)
+        return create_hop_conflict(instance, row["Name"], res)
     return "false"
 
 def underappx_analysis(config, instance, res, sol_id):
@@ -214,10 +237,11 @@ def underappx_analysis(config, instance, res, sol_id):
 
 def osolve(config, instance):
   res = instance.solve(optimisation_level=3, timeout=config.remaining_time_budget())
-  if res.solution is not None:
-    print(res.solution)
+  # if res.solution is not None:
+  #   print(res.solution)
   return res
 
+# `true` if the instance has been completely explored, `false` if we reached the timeout before.
 def usolve_mo(config, instance, pareto_front):
   res = osolve(config, instance)
   conflict_constraints = ""
@@ -227,17 +251,46 @@ def usolve_mo(config, instance, pareto_front):
       if conflict == "false":
         pareto_front.push_sol(res['objs'])
         pareto_front.print()
-        print(pareto_front.front_to_mzn())
         child.add_string(pareto_front.front_to_mzn())
       else:
         print("Found conflict: " + conflict)
         conflict_constraints += f"constraint {conflict};\n"
       time_budget = config.remaining_time_budget()
       if time_budget.total_seconds() <= 0:
-        return
+        return False
       print("Time left: " + str(time_budget.total_seconds()) + "s")
       child.add_string(conflict_constraints)
       res = osolve(config, child)
+  return res.status == UNSATISFIABLE
+
+def conjunction_of(constraints):
+  if len(constraints) == 0:
+    return "constraint true;"
+  else:
+    return "constraint " + " /\\ ".join(constraints) + ";"
+
+# `true` if the instance has been completely explored, `false` if we reached the timeout before.
+def cusolve_mo(config, instance, pareto_front, conflicts):
+  time_budget = config.remaining_time_budget()
+  if time_budget.total_seconds() <= 0:
+    return False
+  print("Pareto front: " + pareto_front.to_str())
+  print(f"Conflicts [{len(conflicts)}]: " + str(conflicts))
+  print("Time left: " + str(time_budget.total_seconds()) + "s")
+  with instance.branch() as child:
+    child.add_string(pareto_front.front_to_mzn())
+    child.add_string(conjunction_of(conflicts))
+    res = osolve(config, child)
+  if res.status == Status.SATISFIED:
+    conflict = underappx_analysis(config, instance, res, pareto_front.num_found_solutions())
+    if conflict == "false":
+      pareto_front.push_sol(res['objs'])
+      return cusolve_mo(config, instance, pareto_front, conflicts)
+    else:
+      return \
+        cusolve_mo(config, instance, pareto_front, conflicts + [conflict]) and \
+        cusolve_mo(config, instance, pareto_front, conflicts + [f"not ({conflict})"])
+  return res.status == UNSATISFIABLE
 
 if __name__ == "__main__":
   config = Config()
@@ -248,7 +301,11 @@ if __name__ == "__main__":
   instance = Instance(solver, model)
   pareto_front = ParetoFront(instance['minimize_objs'])
   try:
-    usolve_mo(config, instance, pareto_front)
+    if cusolve_mo(config, instance, pareto_front, []):
+    # if usolve_mo(config, instance, pareto_front):
+      print("Problem completely explored.")
+    else:
+      print("Timeout reached.")
   except Exception as e:
     logging.error(traceback.format_exc())
   for _, sol_id in pareto_front.front:
