@@ -11,6 +11,37 @@ from datetime import datetime, timedelta
 import traceback
 import logging
 import argparse
+import multiprocessing
+
+class Statistics:
+  def __init__(self, summary_filename):
+    self.cp_solutions = 0
+    self.exhaustive = False
+    self.cp_total_nodes = 0    # Total nodes explored.
+    self.cp_total_nodes_to_sol = 0    # Total nodes explored.
+    self.time_first_uf_sol = 0 # Time required to reach the first UF solution.
+    self.time_last_uf_sol = 0 # Time required to reach the latest best UF solution.
+    self.uf_solutions = 0
+    self.best_pareto_front = []
+    self.time_uf = 0
+    self.time_cp = 0
+    self.time_preprocess = 0
+    self.total_time = 0
+    self.uf_conflicts = 0
+    self.uf_conflicts_backtrack = 0
+    self.summary_filename = summary_filename
+
+  def csv_header(self):
+    if not os.path.exists(self.summary_filename):
+      with open(self.summary_filename, "w") as summary:
+        summary.write("instance;solver;algorithm;cp_strategy;uf_strategy;best_pareto_front;exhaustive;cp_solutions;uf_solutions;time_preprocess;time_cp;time_uf;total_time;time_first_uf_sol;time_last_uf_sol;cp_total_nodes;cp_average_nodes_to_sol;uf_conflicts;uf_conflicts_backtrack;cores\n")
+
+  def csv_entry(self, config, pareto_front):
+    front = pareto_front.to_str()
+    cp_average_nodes_to_sol = self.cp_total_nodes_to_sol / self.cp_solutions
+    with open(self.summary_filename, "a") as summary:
+      summary.write(f"{config.data_name};{config.solver_name};{config.algorithm};{config.cp_strategy};{config.uf_conflict_strategy};{front};{self.exhaustive};{self.cp_solutions};{self.uf_solutions};{round(self.time_preprocess,2)};{round(self.time_cp,2)};{round(self.time_uf,2)};{round(self.total_time,2)};{round(self.time_first_uf_sol,2)};{round(self.time_last_uf_sol,2)};{self.cp_total_nodes};{round(cp_average_nodes_to_sol,2)};{self.uf_conflicts};{self.uf_conflicts_backtrack};{config.cores}\n")
+
 
 class Config:
   def __init__(self):
@@ -26,6 +57,10 @@ class Config:
     parser.add_argument('--timeout_sec', required=True, type=int)
     parser.add_argument('--results_dir', required=True)
     parser.add_argument('--bin', required=True)
+    parser.add_argument('--summary', required=True)
+    parser.add_argument('--uf_conflict_strategy', required=True)
+    parser.add_argument('--cp_strategy', required=True)
+    parser.add_argument('--algorithm', required=True)
     args = parser.parse_args()
     self.data_name = args.instance_name
     self.input_mzn = args.model_mzn
@@ -38,9 +73,19 @@ class Config:
     self.results_dir = args.results_dir + "/results"
     self.all_results_dir = args.results_dir + "/all_results"
     self.bin_dir = args.bin
+    self.summary = args.summary
+    self.uf_conflict_strategy = args.uf_conflict_strategy
+    self.cp_strategy = args.cp_strategy
+    self.algorithm = args.algorithm
     self.start_time_solving = datetime.now()
     self.initialize_directory(self.all_results_dir)
     self.initialize_directory(self.results_dir)
+
+  def initialize_cores(self, solver):
+    if "-p" in solver.stdFlags:
+      self.cores = multiprocessing.cpu_count() * 2
+    else:
+      self.cores = 1
 
   def initialize_directory(self, dir):
     try:
@@ -86,16 +131,20 @@ class Config:
   def wctt_analysis_output(self, sol_id):
     return "timing-analysis-results/" + self.wctt_analysis_filename(sol_id)
 
-  def remaining_time_budget(self):
-    used_budget = datetime.now() - self.start_time_solving
-    return timedelta(seconds = self.timeout_sec - used_budget.total_seconds())
+  def time_elapsed(self):
+    return datetime.now() - self.start_time_solving
 
+  def remaining_time_budget(self):
+    used_budget = self.time_elapsed()
+    return timedelta(seconds = self.timeout_sec - used_budget.total_seconds())
 
 class ParetoFront:
   def __init__(self, minimize_objs_str):
     self.minimize_objs = [bool(obj) for obj in minimize_objs_str]
     self.front = []
     self.sols = 0
+    self.record_res = False
+    self.keep_all = False
 
   def num_found_solutions(self):
     return self.sols
@@ -112,13 +161,17 @@ class ParetoFront:
   def dominates(self, objs1, objs2):
     return all([self.compare(obj1, obj2, m) for (obj1, obj2, m) in zip(objs1, objs2, self.minimize_objs)])
 
-  def push_sol(self, new_objs_str):
+  def push_sol(self, sol):
     # By construction, `objs` cannot be dominated by any solutions in the Pareto front.
-    new_objs = [int(obj) for obj in new_objs_str]
+    new_objs = [int(obj) for obj in sol['objs']]
     # We keep a solution in the Pareto front if at least one of its objective is strictly higher than the corresponding one in the new solution.
     # In other terms, we keep all solutions that are not dominated by `new_objs`.
-    self.front = list(filter(lambda objs: not self.dominates(new_objs, objs[0]), self.front))
-    self.front.append((new_objs, self.sols))
+    if not self.keep_all:
+      self.front = list(filter(lambda objs: not self.dominates(new_objs, objs[0]), self.front))
+    if self.record_res:
+      self.front.append((new_objs, self.sols, sol))
+    else:
+      self.front.append((new_objs, self.sols, None))
     self.sols = self.sols + 1
 
   def objective_mzn(self, objs, i):
@@ -150,11 +203,11 @@ class ParetoFront:
   def to_str(self):
     return '{' + ','.join([str(s[0]) for s in self.front]) + '}'
 
-def create_output_dzn(config, res, sol_id):
+def create_output_dzn(config, solution, sol_id):
   output_dzn = config.output_dzn(sol_id)
+  print("create_out_dzn: ", output_dzn)
   shutil.copyfile(config.input_dzn, output_dzn)
   with open(output_dzn, 'a') as odzn:
-    solution = asdict(res.solution)
     for k,v in solution.items():
       if(isinstance(v, list)):
         odzn.write(k + "=" + str(v) + ";\n")
@@ -173,48 +226,60 @@ def create_wctt_analysis(config, sol_id):
   if output.returncode != 0:
     sys.exit("Error analyzing the topology file " + output_dzn + ".\nstdout:\n" + output.stdout + "\nstderr:\n" + output.stderr)
 
+def get_index_loc_from_name(instance, service_name, sol):
+  services2names = instance["services2names"]
+  i = services2names.index(service_name)
+  loc = sol["services2locs"][i]
+  return i, loc
+
+def get_target_service(instance, service_from, loc_from, sol):
+  service_to = -1
+  loc_to = 0
+  for x in range(len(instance["coms"][service_from])):
+    loc_to = sol["services2locs"][x]
+    if instance["coms"][service_from][x] != 0 and loc_from != loc_to:
+      service_to = x
+      break
+  if service_to == -1:
+    exit("Bug, a service has no communication in coms, but still had a negative delay for a communication...")
+  return service_to, loc_to
+
 # If it is unschedulable, we force the charge of at least one link to be less than its current charge.
-def create_conflict_charge(res):
+def decrease_all_link_charge(sol):
   disjunction = []
-  for i in range(len(res["charge"])):
-    c = res["charge"][i]
+  for i in range(len(sol["charge"])):
+    c = sol["charge"][i]
     disjunction.append(f"charge[{i+1}] < {c}")
   return ' \\/ '.join(disjunction)
 
-def create_conflict_max_charge(res):
+def decrease_max_link_charge(sol):
   max_charge = 0
   max_i = 0
-  for i in range(len(res["charge"])):
-    c = int(res["charge"][i])
+  for i in range(len(sol["charge"])):
+    c = int(sol["charge"][i])
     if c > max_charge:
       max_charge = c
       max_i = i
   return f"charge[{max_i+1}] < {max_charge}"
 
-def get_index_loc_from_name(instance, service_name, res):
-  services2names = instance["services2names"]
-  i = services2names.index(service_name)
-  loc = res["services2locs"][i]
-  return i, loc
+def forbid_source_alloc(instance, service_name, sol):
+  service_from, loc_from = get_index_loc_from_name(instance, service_name, sol)
+  return f"services2locs[{service_from+1}] != {loc_from}"
 
-def create_conflict_alloc(instance, service_name, res):
-  i, loc = get_index_loc_from_name(instance, service_name, res)
-  return f"services2locs[{i+1}] != {loc}"
+def forbid_target_alloc(instance, service_name, sol):
+  service_from, loc_from = get_index_loc_from_name(instance, service_name, sol)
+  service_to, loc_to = get_target_service(instance, service_from, loc_from, sol)
+  return f"services2locs[{service_to+1}] != {loc_to}"
 
-def create_hop_conflict(instance, service_name, res):
-  i1, loc1 = get_index_loc_from_name(instance, service_name, res)
-  i2 = -1
-  loc2 = 0
-  for x in range(len(instance["coms"][i1])):
-    loc2 = res["services2locs"][x]
-    if instance["coms"][i1][x] != 0 and loc1 != loc2:
-      i2 = x
-      break
-  if i2 == -1:
-    exit("Bug, a service has no communication in coms, but still had a negative delay for a communication...")
-  return f"card(shortest_path[services2locs[{i1+1}], services2locs[{i2+1}]]) < card(shortest_path[{loc1},{loc2}])"
+def forbid_source_target_alloc(combination, instance, service_name, sol):
+  return forbid_source_alloc(instance, service_name, sol) + combination + forbid_target_alloc(instance, service_name, sol)
 
-def analyse_wctt_result(config, instance, res, sol_id):
+def decrease_hop(instance, service_name, sol):
+  service_from, loc_from = get_index_loc_from_name(instance, service_name, sol)
+  service_to, loc_to = get_target_service(instance, service_from, loc_from, sol)
+  return f"card(shortest_path[services2locs[{service_from+1}], services2locs[{service_to+1}]]) < card(shortest_path[{loc_from},{loc_to}])"
+
+def analyse_wctt_result(config, instance, sol, sol_id):
   with open(config.wctt_analysis_output(sol_id), 'r') as fanalysis:
     for _ in range(5):
       next(fanalysis)
@@ -223,33 +288,83 @@ def analyse_wctt_result(config, instance, res, sol_id):
       # if the column slack is empty, it means the frame is scheduled using a best-effort strategy so no hard deadline.
       if row["Slack(ms)"] != '' and float(row["Slack(ms)"]) < 0:
         print("WCTT: " + row["Name"] + ";" + row["Routing"] + ";" +row["Slack(ms)"])
-        # return create_conflict_charge(res)
-        # return create_conflict_max_charge(res)
-        # return create_conflict_alloc(instance, row["Name"], res)
-        return create_hop_conflict(instance, row["Name"], res)
+        if config.uf_conflict_strategy == "decrease_all_link_charge":
+          return decrease_all_link_charge(sol)
+        elif config.uf_conflict_strategy == "decrease_max_link_charge":
+          return decrease_max_link_charge(sol)
+        elif config.uf_conflict_strategy == "forbid_source_alloc":
+          return forbid_source_alloc(instance, row["Name"], sol)
+        elif config.uf_conflict_strategy == "forbid_target_alloc":
+          return forbid_target_alloc(instance, row["Name"], sol)
+        elif config.uf_conflict_strategy == "forbid_source_or_target_alloc":
+          return forbid_source_target_alloc(" \\/ ", instance, row["Name"], sol)
+        elif config.uf_conflict_strategy == "forbid_source_and_target_alloc":
+          return forbid_source_target_alloc(" /\\ ", instance, row["Name"], sol)
+        elif config.uf_conflict_strategy == "decrease_hop":
+          return decrease_hop(instance, row["Name"], sol)
+        else:
+          exit(f"Unknown uf_conflict_strategy {uf_conflict_strategy}")
     return "false"
 
-def underappx_analysis(config, instance, res, sol_id):
-  create_output_dzn(config, res, sol_id)
+def underappx_analysis(config, statistics, instance, sol, sol_id):
+  time_start = config.time_elapsed()
+  create_output_dzn(config, sol, sol_id)
   create_output_topology(config, sol_id)
   create_wctt_analysis(config, sol_id)
-  return analyse_wctt_result(config, instance, res, sol_id)
+  wctt_res = analyse_wctt_result(config, instance, sol, sol_id)
+  time_end = config.time_elapsed()
+  statistics.time_uf += (time_end - time_start).total_seconds()
+  return wctt_res
 
-def osolve(config, instance):
-  res = instance.solve(optimisation_level=3, timeout=config.remaining_time_budget())
-  # if res.solution is not None:
-  #   print(res.solution)
+def osolve(config, statistics, instance, all_sols = False):
+  # Note about optimisation_level: 0 and 1 take a similar amount of time.
+  # 2 and 3 takes a substantial amount of time, i.e around half of the total time of the overall solving method.
+  # 4 and 5 are way too long (because there are too many variables).
+  if config.cores == 1:
+    res = instance.solve(optimisation_level=1, all_solutions=all_sols, free_search=True, timeout=config.remaining_time_budget())
+  else:
+    res = instance.solve(optimisation_level=1, all_solutions=all_sols, free_search=True, processes=config.cores, timeout=config.remaining_time_budget())
+  print(res.statistics)
+  if res.solution is not None:
+    if all_sols:
+      statistics.cp_solutions += len(res.solution)
+    else:
+      statistics.cp_solutions += 1
+      statistics.cp_total_nodes_to_sol += res.statistics["nodes"]
+  if "nodes" in res.statistics:
+    statistics.cp_total_nodes += res.statistics["nodes"]
+  if "solveTime" in res.statistics and "initTime" in res.statistics:
+    statistics.time_cp += res.statistics["solveTime"].total_seconds() + res.statistics["initTime"].total_seconds()
+  else:
+    statistics.time_cp += res.statistics["time"] / 1000
+  statistics.time_preprocess += res.statistics["flatTime"].total_seconds()
   return res
 
 # `true` if the instance has been completely explored, `false` if we reached the timeout before.
-def usolve_mo(config, instance, pareto_front):
-  res = osolve(config, instance)
+def solve_mo(config, statistics, instance, pareto_front):
+  res = osolve(config, statistics, instance)
   conflict_constraints = ""
   while res.status == Status.SATISFIED:
     with instance.branch() as child:
-      conflict = underappx_analysis(config, instance, res, pareto_front.num_found_solutions())
+      pareto_front.push_sol(asdict(res.solution))
+      print("Pareto front: " + pareto_front.to_str())
+      child.add_string(pareto_front.front_to_mzn())
+      time_budget = config.remaining_time_budget()
+      if time_budget.total_seconds() <= 0:
+        return False
+      print("Time left: " + str(time_budget.total_seconds()) + "s")
+      res = osolve(config, statistics, child)
+  return res.status == Status.UNSATISFIABLE
+
+# `true` if the instance has been completely explored, `false` if we reached the timeout before.
+def usolve_mo(config, statistics, instance, pareto_front):
+  res = osolve(config, statistics, instance)
+  conflict_constraints = ""
+  while res.status == Status.SATISFIED:
+    with instance.branch() as child:
+      conflict = underappx_analysis(config, statistics, instance, res.solution, pareto_front.num_found_solutions())
       if conflict == "false":
-        pareto_front.push_sol(res['objs'])
+        pareto_front.push_sol(asdict(res.solution))
         pareto_front.print()
         child.add_string(pareto_front.front_to_mzn())
       else:
@@ -260,8 +375,8 @@ def usolve_mo(config, instance, pareto_front):
         return False
       print("Time left: " + str(time_budget.total_seconds()) + "s")
       child.add_string(conflict_constraints)
-      res = osolve(config, child)
-  return res.status == UNSATISFIABLE
+      res = osolve(config, statistics, child)
+  return res.status == Status.UNSATISFIABLE
 
 def conjunction_of(constraints):
   if len(constraints) == 0:
@@ -270,7 +385,7 @@ def conjunction_of(constraints):
     return "constraint " + " /\\ ".join(constraints) + ";"
 
 # `true` if the instance has been completely explored, `false` if we reached the timeout before.
-def cusolve_mo(config, instance, pareto_front, conflicts):
+def cusolve_mo(config, statistics, instance, pareto_front, conflicts):
   time_budget = config.remaining_time_budget()
   if time_budget.total_seconds() <= 0:
     return False
@@ -280,34 +395,88 @@ def cusolve_mo(config, instance, pareto_front, conflicts):
   with instance.branch() as child:
     child.add_string(pareto_front.front_to_mzn())
     child.add_string(conjunction_of(conflicts))
-    res = osolve(config, child)
+    res = osolve(config, statistics, child)
   if res.status == Status.SATISFIED:
-    conflict = underappx_analysis(config, instance, res, pareto_front.num_found_solutions())
+    sol = asdict(res.solution)
+    conflict = underappx_analysis(config, statistics, instance, sol, pareto_front.num_found_solutions())
     if conflict == "false":
-      pareto_front.push_sol(res['objs'])
-      return cusolve_mo(config, instance, pareto_front, conflicts)
+      if pareto_front.num_found_solutions == 0:
+        statistics.time_first_uf_sol = config.time_elapsed().total_seconds()
+        statistics.time_last_uf_sol = statistics.time_first_uf_sol
+      else:
+        statistics.time_last_uf_sol = config.time_elapsed().total_seconds()
+      statistics.uf_solutions += 1
+      pareto_front.push_sol(sol)
+      return cusolve_mo(config, statistics, instance, pareto_front, conflicts)
     else:
-      return \
-        cusolve_mo(config, instance, pareto_front, conflicts + [conflict]) and \
-        cusolve_mo(config, instance, pareto_front, conflicts + [f"not ({conflict})"])
-  return res.status == UNSATISFIABLE
+      statistics.uf_conflicts += 1
+      if cusolve_mo(config, statistics, instance, pareto_front, conflicts + [conflict]):
+        statistics.uf_conflicts_backtrack += 1
+        return cusolve_mo(config, statistics, instance, pareto_front, conflicts + [f"not ({conflict})"])
+      else:
+        return False
+  return res.status == Status.UNSATISFIABLE
+
+def solve_mo_then_uf(config, statistics, instance, pareto_front, keep_all):
+  pareto_front.record_res = True
+  pareto_front.keep_all = keep_all
+  status = solve_mo(config, statistics, instance, pareto_front)
+  uf_pareto_front = ParetoFront(instance['minimize_objs'])
+  for f in pareto_front.front:
+    conflict = underappx_analysis(config, statistics, instance, f[2], f[1])
+    if conflict == "false":
+      statistics.uf_solutions += 1
+      uf_pareto_front.push_sol(f[2])
+      uf_pareto_front.print()
+  return uf_pareto_front
+
+def solve_all_then_uf(config, statistics, instance):
+  res = osolve(config, statistics, instance, True)
+  if res.status == Status.ALL_SOLUTIONS:
+    statistics.exhaustive = True
+  uf_pareto_front = ParetoFront(instance['minimize_objs'])
+  print(f"Found {len(res.solution)}")
+  for sol_id in range(len(res.solution)):
+    sol = asdict(res[sol_id])
+    conflict = underappx_analysis(config, statistics, instance, sol, sol_id)
+    if conflict == "false":
+      statistics.uf_solutions += 1
+      uf_pareto_front.push_sol(sol)
+      uf_pareto_front.print()
+  return uf_pareto_front
 
 if __name__ == "__main__":
   config = Config()
+  statistics = Statistics(config.summary)
   model = Model(config.input_mzn)
   model.add_file(config.input_dzn, parse_data=True)
   model.add_file(config.objectives_dzn, parse_data=True)
   solver = Solver.lookup(config.solver_name)
+  config.initialize_cores(solver)
   instance = Instance(solver, model)
   pareto_front = ParetoFront(instance['minimize_objs'])
   try:
-    if cusolve_mo(config, instance, pareto_front, []):
-    # if usolve_mo(config, instance, pareto_front):
-      print("Problem completely explored.")
+    if config.algorithm == "solve-mo-then-uf":
+      pareto_front = solve_mo_then_uf(config, statistics, instance, pareto_front, False)
+    elif config.algorithm == "solve-mo-keep-all-then-uf":
+      pareto_front = solve_mo_then_uf(config, statistics, instance, pareto_front, True)
+    elif config.algorithm == "solve-all-then-uf":
+      pareto_front = solve_all_then_uf(config, statistics, instance)
+    elif config.algorithm == "cusolve-mo":
+      if cusolve_mo(config, statistics, instance, pareto_front, []):
+      # if usolve_mo(config, statistics, instance, pareto_front):
+        print("Problem completely explored.")
+        statistics.exhaustive = True
+      else:
+        print("Timeout reached.")
     else:
-      print("Timeout reached.")
+      exit(f"Unknown algorithm {config.algorithm}")
   except Exception as e:
     logging.error(traceback.format_exc())
-  for _, sol_id in pareto_front.front:
+  statistics.total_time = config.time_elapsed().total_seconds()
+  statistics.csv_header()
+  statistics.csv_entry(config, pareto_front)
+  for f in pareto_front.front:
+    sol_id = f[1]
     shutil.copyfile(config.output_dzn(sol_id), config.output_clean_dzn(sol_id))
     shutil.copyfile(config.output_topology(sol_id), config.output_clean_topology(sol_id))

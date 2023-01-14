@@ -45,13 +45,14 @@ constraint forall(link in NUM_LINKS)(slack[link] >= 0 /\ slack[link] <= capacity
 array[NUM_LINKS] of var 0..100: charge;
 constraint forall(link in NUM_LINKS)(charge[link] == (capacity[link] - slack[link]) div (capacity[link] div 100));
 
-array[1..3] of bool: minimize_objs;
+%array[1..3] of bool: minimize_objs;
 array[1..3] of var int: objs;
 constraint objs[1] = max(link in NUM_LINKS)(charge[link]);
 constraint objs[2] = max(l in LOCATIONS)(cpu_usage[l]);
 constraint objs[3] = sum(l in LOCATIONS)(cpu_usage[l] == 0);
 
- solve :: int_search(services2locs, first_fail, indomain_random)
-% solve :: int_search(services2locs, first_fail, indomain_min)
+solve
+% :: int_search(services2locs, first_fail, indomain_random)
+%solve :: int_search(services2locs, first_fail, indomain_min)
 %solve :: int_search(services2locs, dom_w_deg, indomain_random)
 satisfy;

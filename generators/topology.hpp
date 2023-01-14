@@ -12,6 +12,7 @@
 #include <iterator>
 #include <algorithm>
 #include <regex>
+#include <random>
 
 using namespace std;
 
@@ -65,6 +66,8 @@ class Network {
   vector<string> idx2service;
   vector<vector<int>> coms; // The speed in bits / second required between each service communication.
   vector<string> receivers; // For all communications, record which receiver (a service) is assigned to the ith communication.
+
+  vector<int> services_cpu_usage;
 
   void initialize_communications(const vector<ServiceComString>& raw_coms) {
     vector<ServiceCom> services;
@@ -239,6 +242,46 @@ public:
     return path;
   }
 
+private:
+  template <class Distribution>
+  void generate_services_cpu_usage_distrib(int occupancy, Distribution& distrib) {
+    random_device rd;
+    mt19937 gen(rd());
+    double total = 0;
+    vector<double> raw_usages(idx2service.size());
+    for(int i = 0; i < raw_usages.size(); ++i) {
+      raw_usages[i] = static_cast<double>(distrib(gen));
+      total += raw_usages[i];
+    }
+    double scale = total / static_cast<double>(occupancy * nodes.size());
+    for(int i = 0; i < services_cpu_usage.size(); ++i) {
+      services_cpu_usage[i] = static_cast<double>(raw_usages[i]) / scale;
+    }
+  }
+
+public:
+  void generate_services_cpu_usage(int occupancy, const string& distribution) {
+    services_cpu_usage.resize(idx2service.size());
+    if(distribution == "constant") {
+      int cpu_charge = occupancy * nodes.size() / services_cpu_usage.size();
+      for(int i = 0; i < services_cpu_usage.size(); ++i) {
+        services_cpu_usage[i] = cpu_charge;
+      }
+    }
+    else if(distribution == "uniform") {
+      uniform_int_distribution<> distrib(1, 100);
+      generate_services_cpu_usage_distrib(occupancy, distrib);
+    }
+    else if(distribution == "normal") {
+      normal_distribution<> distrib(40, 20);
+      generate_services_cpu_usage_distrib(occupancy, distrib);
+    }
+    else {
+      cerr << "unknown distribution " << distribution << endl;
+      exit(1);
+    }
+  }
+
   void print_dzn() const {
     cout << "locations = " << dist.size() << ";" << endl;
     cout << "cpu_capacity = [";
@@ -253,11 +296,10 @@ public:
       }
       cout << (i+1 == dist.size() ? "];\n" : ", ");
     }
-    cout << "cpu_service = [";
-    int cpu_service = (total_capacity / (idx2service.size() * 5)) * 4;
-    for(int i = 0; i < idx2service.size(); ++i) {
-      cout << cpu_service;
-      cout << (i+1 == idx2service.size() ? "];\n" : ", ");
+    cout << "services_cpu_usage = [";
+    for(int i = 0; i < services_cpu_usage.size(); ++i) {
+      cout << services_cpu_usage[i];
+      cout << (i+1 == services_cpu_usage.size() ? "];\n" : ", ");
     }
     cout << "services = " << service2idx.size() << ";" << endl;
     cout << "coms = [|" << endl;
