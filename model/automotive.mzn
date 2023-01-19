@@ -8,7 +8,7 @@ array[LOCATIONS] of var int: cpu_usage;
 int: services;
 set of int: SERVICES = 1..services;
 array[SERVICES] of var LOCATIONS: services2locs;
-array[SERVICES] of int: cpu_service;
+array[SERVICES] of int: services_cpu_usage;
 array[SERVICES, SERVICES] of int: coms; % communication
 
 array[LOCATIONS] of string: locations2names;
@@ -18,7 +18,7 @@ array[SERVICES] of string: services2names;
 constraint forall(l in LOCATIONS)
                  (cpu_usage[l] =
                     sum(s in SERVICES)
-                       (cpu_service[s] * (services2locs[s] == l)));
+                       (services_cpu_usage[s] * (services2locs[s] == l)));
 constraint forall(l in LOCATIONS)(cpu_usage[l] >= 0 /\ cpu_usage[l] <= cpu_capacity[l]);
 
 int: num_links;

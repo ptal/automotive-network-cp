@@ -44,8 +44,8 @@ vector<string> read_until(istream& t, const string& last, bool echo=false) {
     res.push_back(std::move(line));
   }
   if(line != last) {
-    cout << line << endl;
-    cout << last << endl;
+    cerr << line << endl;
+    cerr << last << endl;
     assert(false);
   }
   return res;

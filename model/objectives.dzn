@@ -1,1 +1,2 @@
 minimize_objs = [true, true, false];
+ref_point = [101, 101, 0];

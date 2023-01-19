@@ -256,6 +256,7 @@ private:
     double scale = total / static_cast<double>(occupancy * nodes.size());
     for(int i = 0; i < services_cpu_usage.size(); ++i) {
       services_cpu_usage[i] = static_cast<double>(raw_usages[i]) / scale;
+      services_cpu_usage[i] = max(1, services_cpu_usage[i]);
     }
   }
 
@@ -374,6 +375,19 @@ Network read_network(const char* filename) {
     auto csv_line = split_csv(com);
     auto service_name = csv_line[0];
     int data = stoi(csv_line[8]);
+    if(csv_line[6] == "ETHERNET_FRAME_SIZE_QTAG" || csv_line[6] == "ETHERNET_FRAME_SIZE") {
+      data += 20;
+    }
+    else if(csv_line[6] == "AVTP_PAYLOAD_IEC_61883") {
+      data += 50;
+    }
+    else if(csv_line[6] == "AVTP_PAYLOAD_H264_CVF") {
+      data += 46;
+    }
+    else {
+      cerr << "Unknown frame " << csv_line[6] << endl;
+      exit(1);
+    }
     bool burst = csv_line[3] == "PeriodicBursts";
     if(burst) {
       data *= stoi(csv_line[9]);
