@@ -1,5 +1,5 @@
 #!/bin/bash
-# set -x
+set -x
 
 
 # algorithms=("solve-mo-then-uf" "solve-mo-keep-all-then-uf" "solve-all-then-uf" "cusolve-mo")
