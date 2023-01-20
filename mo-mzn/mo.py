@@ -15,6 +15,7 @@ import multiprocessing
 from pymoo.indicators.hv import HV
 import numpy as np
 import copy
+from filelock import FileLock
 
 class Statistics:
   def __init__(self, summary_filename):
@@ -35,9 +36,11 @@ class Statistics:
     self.summary_filename = summary_filename
 
   def csv_header(self):
-    if not os.path.exists(self.summary_filename):
-      with open(self.summary_filename, "w") as summary:
-        summary.write("instance;solver;algorithm;cp_strategy;uf_strategy;hypervolume;best_pareto_front;exhaustive;cp_solutions;uf_solutions;time_preprocess;time_cp;time_uf;total_time;time_first_uf_sol;time_last_uf_sol;cp_total_nodes;cp_average_nodes_to_sol;uf_conflicts;uf_conflicts_backtrack;cores;timeout_sec\n")
+    lock = FileLock(self.summary_filename + ".lock")
+    with lock:
+      if not os.path.exists(self.summary_filename):
+        with open(self.summary_filename, "w") as summary:
+          summary.write("instance;solver;algorithm;cp_strategy;uf_strategy;hypervolume;best_pareto_front;exhaustive;cp_solutions;uf_solutions;time_preprocess;time_cp;time_uf;total_time;time_first_uf_sol;time_last_uf_sol;cp_total_nodes;cp_average_nodes_to_sol;uf_conflicts;uf_conflicts_backtrack;cores;timeout_sec\n")
 
   def csv_entry(self, instance, config, pareto_front):
     hypervolume = pareto_front.hypervolume(instance)
@@ -46,8 +49,10 @@ class Statistics:
       cp_average_nodes_to_sol = self.cp_total_nodes_to_sol / self.cp_solutions
     else:
       cp_average_nodes_to_sol = 0
-    with open(self.summary_filename, "a") as summary:
-      summary.write(f"{config.data_name};{config.solver_name};{config.algorithm};{config.cp_strategy};{config.uf_strategy};{int(np.rint(hypervolume))};{front};{self.exhaustive};{self.cp_solutions};{self.uf_solutions};{round(self.time_preprocess,2)};{round(self.time_cp,2)};{round(self.time_uf,2)};{round(self.total_time,2)};{round(self.time_first_uf_sol,2)};{round(self.time_last_uf_sol,2)};{self.cp_total_nodes};{round(cp_average_nodes_to_sol,2)};{self.uf_conflicts};{self.uf_conflicts_backtrack};{config.cores};{config.timeout_sec}\n")
+    lock = FileLock(self.summary_filename + ".lock")
+    with lock:
+      with open(self.summary_filename, "a") as summary:
+        summary.write(f"{config.data_name};{config.solver_name};{config.algorithm};{config.cp_strategy};{config.uf_strategy};{int(np.rint(hypervolume))};{front};{self.exhaustive};{self.cp_solutions};{self.uf_solutions};{round(self.time_preprocess,2)};{round(self.time_cp,2)};{round(self.time_uf,2)};{round(self.total_time,2)};{round(self.time_first_uf_sol,2)};{round(self.time_last_uf_sol,2)};{self.cp_total_nodes};{round(cp_average_nodes_to_sol,2)};{self.uf_conflicts};{self.uf_conflicts_backtrack};{config.cores};{config.timeout_sec}\n")
 
 
 class Config:

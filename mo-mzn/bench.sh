@@ -4,10 +4,11 @@
 
 # algorithms=("solve-mo-then-uf" "solve-mo-keep-all-then-uf" "solve-all-then-uf" "cusolve-mo")
 algorithms=("cusolve-mo" "solve-mo-then-uf")
-strategy=firstfail-inrandom
+strategy=firstfail-split
 
 # uf_strategies2=("forbid_source_alloc" "decrease_hop" "all5")
-uf_strategies2=("not_assignment" "decrease_hop" "forbid_source_alloc" "forbid_target_alloc" "forbid_source_or_target_alloc" "forbid_source_and_target_alloc")
+# uf_strategies2=("not_assignment" "decrease_hop" "forbid_source_alloc" "forbid_target_alloc" "forbid_source_or_target_alloc" "forbid_source_and_target_alloc")
+uf_strategies2=("decrease_hop")
 timeout_sec=1200
 solvers=("gecode")
 
@@ -16,8 +17,8 @@ do
   if [ -f $f ]
   then
     data_name=$(basename -- "$f" .dzn)
-    # if [ $data_name == "topology75-14_005_c20" ]
-    # then
+    if [ $data_name == "topology75-14_005_c60" ]
+    then
       for algorithm in ${algorithms[@]}; do
         for uf_strategy in ${uf_strategies2[@]}; do
           for solver in ${solvers[@]}; do
@@ -27,7 +28,7 @@ do
           done
         done
       done
-    # fi
+    fi
   fi
 done
 
