@@ -10,18 +10,12 @@
 
 ulimit -u 10000
 
-# Note: all tasks take the same time, so it should be fine to use this method.
-TASK=run_stressme
-ncores=${SLURM_NTASKS_PER_NODE:-$(nproc --all)}
-For i in {1..30}; do
-    srun ${TASK} $i &
-    [[ $((i%ncores)) -eq 0 ]] && wait
-done
-wait
+module load compiler/GCC/10.2.0
+module load compiler/GCCcore/10.2.0
 
 algorithms=("cusolve-mo" "solve-mo-then-uf" "solve-mo-keep-all-then-uf")
 strategy=firstfail-random
-uf_strategies=("not_assignment" "decrease_hop" "forbid_source_alloc" "forbid_target_alloc")
+uf_strategies=("not_assignment" "decrease_hop" "forbid_source_alloc" "forbid_target_alloc" "decrease_max_link_charge")
 timeout_sec=60
 solvers=("gecode")
 summary="summary_test.csv"

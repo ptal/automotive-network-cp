@@ -54,7 +54,7 @@ array[1..3] of bool: minimize_objs;
 array[1..3] of int: ref_point;
 
 solve
- :: int_search(services2locs, first_fail, indomain_split)
-%solve :: int_search(services2locs, first_fail, indomain_min)
+ %:: int_search(services2locs, first_fail, indomain_split)
+ :: int_search(services2locs, first_fail, indomain_min)
 %solve :: int_search(services2locs, dom_w_deg, indomain_random)
 satisfy;
