@@ -1,4 +1,5 @@
 from pymoo.indicators.hv import HV
+import numpy as np
 
 class ParetoFront:
   """A class representing a Pareto front of solutions over integer variables.
@@ -57,7 +58,7 @@ class ParetoFront:
     for f in self.front:
       if not self.dominates(self.solutions[idx], self.solutions[f]):
         newFront.append(f)
-      elif self.dominates(self.solutions[f], self.solutions[idx]):
+      if self.dominates(self.solutions[f], self.solutions[idx]):
         return False
     newFront.append(idx)
     self.front.clear()
@@ -67,6 +68,7 @@ class ParetoFront:
 
   def join(self, x):
     """Add to the Pareto front the solution `x` if it is not dominated by any solution in the Pareto front.
+       The Pareto front is also updated to remove all solutions dominated by `x`.
         Args:
           x (Solution): A solution to the constraint model described by `instance`.
         Returns:
@@ -94,31 +96,32 @@ class ParetoFront:
     self.front = [f for f in self.front if f > idx_x]
     for idx_y in range(0, idx_x):
       self.join_front(idx_y)
-    self.front.sort();
+    self.front.sort()
     return True
 
   def filter(self, keep):
     """Update the Pareto front of the solutions set such that all solutions in the Pareto front satisfy the predicate `keep`.
+       It is a generator that yields the solutions satisfying the predicate `keep`.
+
        Args:
           keep (Solution -> Bool): A predicate on solutions returning `True` if the solution must be kept, and `False` otherwise.
         Returns:
-          Int:
-            The number of solutions discarded by the predicate `keep`.
+          Solution:
+            The solutions satisfying the predicate `keep`.
     """
     if self.front == []:
-      return 0
-    num_discarded = 0
+      return
     idx = self.front[-1]
     while idx >= 0:
       if not keep(self.solutions[idx]):
         self.remove(self.solutions[idx])
-        num_discarded += 1
+      else:
+        yield self.solutions[idx]
       remaining_front = [f for f in self.front if f < idx]
       if len(remaining_front) == 0:
         idx = -1
       else:
         idx = remaining_front[-1]
-    return num_discarded
 
   def not_dominated_constraint_mzn(self, x):
     """For each solution `y` to the problem, we return a Minizinc constraint guaranteeing that `y` is not dominated by `x`.
@@ -126,16 +129,14 @@ class ParetoFront:
         Str:
           For instance, on a bi-objective problem `objs[1] > 1 \/ objs[2] < 10`
     """
-    cons = ""
+    cons = []
     for i, minimize in enumerate(self.minimize_objs):
       obj_value = int(x["objs"][i])
       if minimize:
-        cons += f"objs[{i+1}] < {obj_value}"
+        cons.append(f"objs[{i+1}] < {obj_value}")
       else:
-        cons += f"objs[{i+1}] > {obj_value}"
-      if i+1 != len(self.minimize_objs):
-        cons += "\\/ "
-    return cons
+        cons.append(f"objs[{i+1}] > {obj_value}")
+    return " \\/ ".join(cons)
 
   def front_constraint_mzn(self):
     """For each solution `y` to the problem, we return a Minizinc constraint guaranteeing that `y` is not dominated by any solution in the Pareto front.
@@ -146,11 +147,10 @@ class ParetoFront:
     """
     if self.front == []:
       return "true"
-    for i, f in enumerate(self.front):
-      cons += "(" + self.not_dominated_constraint_mzn(self.solutions[f]) + ")"
-      if i+1 != len(self.front):
-        cons += " /\\ "
-    return cons
+    cons = []
+    for f in self.front:
+      cons.append("(" + self.not_dominated_constraint_mzn(self.solutions[f]) + ")")
+    return " /\\ ".join(cons)
 
   def to_str(self):
     """Return a string representation of the Pareto front."""
