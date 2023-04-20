@@ -15,7 +15,7 @@ class Config:
     parser.add_argument('--dzn_dir', required=True)
     parser.add_argument('--topology_dir', required=True)
     parser.add_argument('--solver_name', required=True)
-    parser.add_argument('--timeout_sec', required=True, type=int)
+    parser.add_argument('--cp_timeout_sec', required=True, type=int)
     parser.add_argument('--tmp_dir', required=True)
     parser.add_argument('--bin', required=True)
     parser.add_argument('--summary', required=True)
@@ -38,7 +38,7 @@ class Config:
     topology_name = topology_name[:-1]
     self.input_topology = args.topology_dir + "/" + topology_name + ".csv"
     self.solver_name = args.solver_name
-    self.timeout_sec = args.timeout_sec
+    self.cp_timeout_sec = args.cp_timeout_sec
     self.tmp_dir = args.tmp_dir
     self.bin_dir = args.bin
     self.summary_filename = args.summary
@@ -62,7 +62,7 @@ class Config:
     statistics["uf_conflicts_combinator"] = self.uf_conflicts_combinator
     statistics["fzn_optimisation_level"] = self.fzn_optimisation_level
     statistics["cores"] = self.cores
-    statistics["timeout_sec"] = self.timeout_sec
+    statistics["cp_timeout_sec"] = self.cp_timeout_sec
 
   def initialize_cores(self, solver):
     """If the solver supports parallelization, use twice the number of available cores. Otherwise, use only one core."""
@@ -70,13 +70,6 @@ class Config:
       self.cores = multiprocessing.cpu_count() * 2
     else:
       self.cores = 1
-
-  def initialize_directory(self, dir):
-    """Create a directory, ignoring any error (such as if the directory already exists)."""
-    try:
-      os.mkdir(dir)
-    except OSError as error:
-      pass
 
   def wctt_analyser(self):
     return self.bin_dir + "/pegase-timing-analysis.jar"

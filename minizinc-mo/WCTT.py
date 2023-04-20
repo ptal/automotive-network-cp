@@ -3,6 +3,8 @@ import subprocess
 import sys
 import csv
 from tempfile import TemporaryDirectory
+import pexpect
+import socket
 
 class WCTT:
   """Given an assignment of services to processors, we run a worst-case traversal time analysis to check if it is a solution w.r.t. WTCC.
@@ -13,30 +15,57 @@ class WCTT:
       4. Analyze the output of the PEGASE timing analysis tool and extract a conflict if it is unsuccessful.
 
      Args:
-      instance: The instance of the MiniZinc constraint problem.
-      config: The configuration of the solving algorithm.
-      conflict_combinator: The combinator used to combine the conflicts found by the strategy `config.uf_conflict_strategy`.
+      instance (Instance): The instance of the MiniZinc constraint problem.
+      config (Config): The configuration of the solving algorithm.
+      conflict_combinator (String): The combinator used to combine the conflicts found by the strategy `config.uf_conflict_strategy`.
         It can be either " /\\ " (and) or " \\/ " (or).
         If you are not using `CUSolve` and use over-approximating conflicts, we must use " \// " (or), otherwise the algorithm might miss solutions.
+      verbose (Bool): Print the steps of the analysis.
   """
 
-  def __init__(self, instance, config, conflict_combinator = " /\\ "):
+  def _start_wctt_server(self):
+    """Start the Pegase WCTT server.
+       We start the Pegase program with `pexpect.spawn` and expect the program to print an integer which is the port number.
+       After, Python will communicate using socket programming with the Pegase program."""
+    self._print("Starting the Pegase WCTT server...")
+    self.host = "localhost"
+    self.input_topology = self.tmp_dir.name + "/input_topology.csv"
+    self.output_wctt = self.tmp_dir.name + "/output_wctt.csv"
+    self.wctt_process = pexpect.spawn("java", ["-jar", self.config.wctt_analyser, self.input_topology, self.output_wctt], encoding="utf-8")
+    self.port = int(self.wctt_process.readline())
+    self.wctt_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.wctt_socket.connect((self.host, self.port))
+
+  def __init__(self, instance, config, conflict_combinator = " /\\ ", verbose = True):
     self.instance = instance
     self.config = config
     self.tmp_dir = TemporaryDirectory(dir=config.tmp_dir)
-    print("WCTT temporary directory: " + self.tmp_dir.name)
     self.conflict_combinator = conflict_combinator
+    self.verbose = verbose
+    self._start_wctt_server()
+    self._print("WCTT temporary directory: " + self.tmp_dir.name)
 
   def analyse(self, sol, conflict_strategy="not_assignment"):
+    """Perform the WCTT analysis on `sol` and produce a conflict on unschedulable solution.
+       Args:
+         sol (Solution): The MiniZinc solution to analyse.
+         conflict_strategy (String): The strategy to use to create the conflict, it must be the name of a conflict method of this class.
+       Returns: A string describing the conflict as a MiniZinc constraint if the solution is not schedulable, `True` otherwise.
+    """
     solution_dzn = self._solution2dzn(sol)
     self._dzn2topology(solution_dzn)
     self._topology2analysis()
     return self._create_conflict(sol, conflict_strategy)
 
+  def _print(self, msg):
+    if self.verbose:
+      print(msg)
+
   def _solution2dzn(self, solution):
     """Convert `solution` to the DZN format in a file `solution.dzn` in the temporary directory.
        Then, append to it the input parameter DZN file."""
     solution_dzn = self.tmp_dir.name + "/solution.dzn"
+    self._print("solution2dzn: " + solution_dzn)
     shutil.copyfile(self.config.input_dzn, solution_dzn)
     with open(solution_dzn, 'a') as odzn:
       for k in vars(solution):
@@ -45,22 +74,34 @@ class WCTT:
 
   def _dzn2topology(self, solution_dzn):
     """Convert the DZN file to a topology file named `topology.csv` in the temporary directory."""
+    self._print("dzn2topology: " + self.config.input_topology)
     output = subprocess.run([self.config.dzn2topology(), self.config.input_topology, solution_dzn], text=True, capture_output=True)
     if output.returncode != 0:
-      sys.exit("Error converting the DZN file solution.dzn in the temporary directory to a topology.\nstderr:\n" + output.stderr)
+      with open(solution_dzn, 'r') as fin:
+        print(fin.read())
+      sys.exit("Error converting the DZN file solution.dzn in the temporary directory to a topology.\nstdout:\n" + output.stdout + "\nstderr:\n" + output.stderr)
     topology = self.tmp_dir.name + "/topology.csv"
     with open(topology, 'w') as otopo:
       otopo.write(output.stdout)
 
+  def _topology2analysis_async(self, analysis_precision = 1):
+    self._print("topology2analysis_async")
+    self.wctt_socket.sendall(bytes(str(analysis_precision)+"\n", "utf-8"))
+    result = self.wctt_socket.recv(1024).decode()
+    if result != "done\n":
+      sys.exit("Error analyzing the topology file `topology.csv` in the temporary directory.\nstdout:\n" + self.wctt_process.stdout + "\nstderr:\n" + self.wctt_process.stderr)
+
   def _topology2analysis(self):
     """Run the Pegase WCTT analysis on the temporary directory containing the topology to analyze."""
+    self._print("topology2analysis")
     output = subprocess.run(["java", "-jar", self.config.wctt_analyser(), self.tmp_dir.name], text=True, capture_output=True)
     if output.returncode != 0:
       sys.exit("Error analyzing the topology file `topology.csv` in the temporary directory.\nstdout:\n" + output.stdout + "\nstderr:\n" + output.stderr)
 
   def _create_conflict(self, sol, conflict_strategy):
     """Analyse the result of the WCTT analysis (in `timing-analysis-results/topology_WCTT.csv`) and extract a conflict if it is unsuccessful, otherwise returns True."""
-    with open("timing-analysis-results/topology_WCTT.csv", 'r') as fanalysis:
+    self._print("create_conflict: " + conflict_strategy)
+    with open(self.output_analysis, 'r') as fanalysis:
       for _ in range(5):
         next(fanalysis)
       wctt = csv.DictReader(fanalysis, delimiter=';')
@@ -69,7 +110,7 @@ class WCTT:
       for row in wctt:
         # if the column slack is empty, it means the frame is scheduled using a best-effort strategy so no hard deadline.
         if row["Slack(ms)"] != '' and float(row["Slack(ms)"]) < 0:
-          print("WCTT: " + row["Name"] + ";" + row["Routing"] + ";" +row["Slack(ms)"])
+          self._print("WCTT conflict: " + row["Name"] + ";" + row["Routing"] + ";" +row["Slack(ms)"])
           conflicts.append(conflict_gen(self, row, sol))
           if self.is_global_conflict():
             break

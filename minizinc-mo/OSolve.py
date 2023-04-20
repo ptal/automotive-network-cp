@@ -12,7 +12,7 @@ class OSolve:
        optimisation_level (Int): The optimisation level of the preprocessing step when converting MiniZinc to FlatZinc (from 1 to 5). Note that this is done before each call to `solve`.
   """
 
-  def __init__(self, instance, statistics, timer=None, cores=None, free_search=False, optimisation_level=1):
+  def __init__(self, instance, statistics, timer, cores=None, free_search=False, optimisation_level=1):
     self.instance = instance
     self.local_constraints = ""
     self.cores = cores
@@ -39,7 +39,10 @@ class OSolve:
          Solution:
            A solution to `instance`."""
     while True:
-      timeout = self.timer.time_left()
+      if self.timer == None:
+        timeout = None
+      else:
+        timeout = self.timer.resume()
       with self.instance.branch() as child:
         child.add_string(self.local_constraints)
         self.local_constraints = ""
@@ -49,6 +52,8 @@ class OSolve:
           free_search = self.free_search,
           timeout = timeout,
           processes = self.cores)
+      if self.timer != None:
+        self.timer.pause()
       self.update_statistics(res)
       if res.status == Status.SATISFIED or res.status == Status.ALL_SOLUTIONS:
         yield res
@@ -62,13 +67,11 @@ class OSolve:
   def add_local_constraint(self, constraint):
     """Add a constraint to the model only for the next call to `solve`."""
     if constraint != "true":
-      print(constraint)
       self.local_constraints += "constraint " + constraint + ";\n"
 
   def add_global_constraint(self, constraint):
     """Add a constraint to the model persisting between calls to `solve`."""
     if constraint != "true":
-      print(constraint)
       self.instance.add_string("constraint " + constraint + ";\n")
 
   def update_statistics(self, res):

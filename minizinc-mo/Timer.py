@@ -5,8 +5,12 @@ class Timer:
     self.time_budget_sec = time_budget_sec
     self.start_time = datetime.now()
 
-  def time_left(self):
-    time_left = self.time_budget_sec - (datetime.now() - self.start_time).total_seconds()
-    if time_left <= 0:
+  def resume(self):
+    if self.time_budget_sec <= 0:
       raise TimeoutError()
-    return timedelta(seconds = time_left)
+    self.start_time = datetime.now()
+    return timedelta(seconds = self.time_budget_sec)
+
+  def pause(self):
+    end_time = datetime.now()
+    self.time_budget_sec -= (end_time - self.start_time).total_seconds()

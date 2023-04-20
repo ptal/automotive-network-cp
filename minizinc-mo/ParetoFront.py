@@ -10,7 +10,7 @@ class ParetoFront:
       * `array[1..N] of var int: objs;` are the objectives variables.
       * `array[1..N] of bool: minimize_objs;` where `minimize_objs[i]` is `true` if the objective `i` needs to be minimized and `false` if it needs to be maximized.
       * `array[1..N] of int: ref_point;` (optional): if the hypervolume function is called, `ref_point` is the reference point of the hypervolume, i.e., the worst possible point.
-    solutions (List[Solution]): All the solutions that has been discovered so far.
+    solutions (List[Result]): All the solutions that has been discovered so far.
     front (List[Int]): An index subset of `solutions` containing the Pareto front. Invariant: front is sorted.
   """
 
@@ -70,7 +70,7 @@ class ParetoFront:
     """Add to the Pareto front the solution `x` if it is not dominated by any solution in the Pareto front.
        The Pareto front is also updated to remove all solutions dominated by `x`.
         Args:
-          x (Solution): A solution to the constraint model described by `instance`.
+          x (Result): A solution to the constraint model described by `instance`.
         Returns:
           Bool:
             `True` if `x` was added to the solutions set and the Pareto front, `False` otherwise.
@@ -85,6 +85,8 @@ class ParetoFront:
   def remove(self, x):
     """Remove the solution `x` from the Pareto front, and recompute the Pareto front without `x`.
        The same Pareto front is obtained if `x` is not in the Pareto front.
+       Args:
+          x (Result): A solution to the constraint model described by `instance`.
        Returns:
           Bool:
             `True` if `x` was removed from the Pareto front, `False` otherwise.
@@ -104,9 +106,9 @@ class ParetoFront:
        It is a generator that yields the solutions satisfying the predicate `keep`.
 
        Args:
-          keep (Solution -> Bool): A predicate on solutions returning `True` if the solution must be kept, and `False` otherwise.
+          keep (Result -> Bool): A predicate on solutions returning `True` if the solution must be kept, and `False` otherwise.
         Returns:
-          Solution:
+          Result:
             The solutions satisfying the predicate `keep`.
     """
     if self.front == []:
