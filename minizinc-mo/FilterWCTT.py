@@ -13,6 +13,7 @@ class FilterWCTT:
     statistics["uf_calls"] = 0
     statistics["uf_solutions"] = 0
     statistics["uf_conflicts"] = 0
+    statistics["hypervolume_before_uf"] = 0
 
   def _filter_wctt(self, res):
     self.statistics["uf_calls"] += 1
@@ -28,6 +29,7 @@ class FilterWCTT:
 
   def solve(self):
     """Yield the solutions accepted by the WCTT analysis."""
+    self.statistics["hypervolume_before_uf"] = self.pareto_front.hypervolume()
     for x in self.pareto_front.filter(self._filter_wctt):
       yield x
 

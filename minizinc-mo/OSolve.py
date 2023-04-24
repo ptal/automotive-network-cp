@@ -84,6 +84,6 @@ class OSolve:
     if "solveTime" in res.statistics:
       self.statistics["time_cp_sec"] += res.statistics["solveTime"].total_seconds()
     elif "time" in res.statistics:
-      self.statistics["time_cp_sec"] += res.statistics["time"] / 1000
+      self.statistics["time_cp_sec"] += res.statistics["time"].total_seconds() / 1000
     if "flatTime" in res.statistics:
       self.statistics["time_fzn_sec"] += res.statistics["flatTime"].total_seconds()

@@ -3,8 +3,8 @@ import subprocess
 import sys
 import csv
 from tempfile import TemporaryDirectory
-import pexpect
 import socket
+import pexpect
 
 class WCTT:
   """Given an assignment of services to processors, we run a worst-case traversal time analysis to check if it is a solution w.r.t. WTCC.
@@ -31,8 +31,11 @@ class WCTT:
     self.host = "localhost"
     self.input_topology = self.tmp_dir.name + "/input_topology.csv"
     self.output_wctt = self.tmp_dir.name + "/output_wctt.csv"
-    self.wctt_process = pexpect.spawn("java", ["-jar", self.config.wctt_analyser, self.input_topology, self.output_wctt], encoding="utf-8")
-    self.port = int(self.wctt_process.readline())
+    self.wctt_process = pexpect.spawn("java",["-jar", self.config.wctt_analyser(), self.input_topology, self.output_wctt], encoding="utf-8")
+    # try:
+    self.wctt_process.expect("\d+\w")
+    self.port = int(self.wctt_process.after)
+    print("Connected to the WCTT server on the port: " + str(self.port))
     self.wctt_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.wctt_socket.connect((self.host, self.port))
 
@@ -80,28 +83,22 @@ class WCTT:
       with open(solution_dzn, 'r') as fin:
         print(fin.read())
       sys.exit("Error converting the DZN file solution.dzn in the temporary directory to a topology.\nstdout:\n" + output.stdout + "\nstderr:\n" + output.stderr)
-    topology = self.tmp_dir.name + "/topology.csv"
-    with open(topology, 'w') as otopo:
+    with open(self.input_topology, 'w') as otopo:
       otopo.write(output.stdout)
 
-  def _topology2analysis_async(self, analysis_precision = 1):
-    self._print("topology2analysis_async")
-    self.wctt_socket.sendall(bytes(str(analysis_precision)+"\n", "utf-8"))
-    result = self.wctt_socket.recv(1024).decode()
-    if result != "done\n":
-      sys.exit("Error analyzing the topology file `topology.csv` in the temporary directory.\nstdout:\n" + self.wctt_process.stdout + "\nstderr:\n" + self.wctt_process.stderr)
-
-  def _topology2analysis(self):
-    """Run the Pegase WCTT analysis on the temporary directory containing the topology to analyze."""
-    self._print("topology2analysis")
-    output = subprocess.run(["java", "-jar", self.config.wctt_analyser(), self.tmp_dir.name], text=True, capture_output=True)
-    if output.returncode != 0:
-      sys.exit("Error analyzing the topology file `topology.csv` in the temporary directory.\nstdout:\n" + output.stdout + "\nstderr:\n" + output.stderr)
+  def _topology2analysis(self, analysis_precision = 1):
+    self._print("topology2analysis: " + self.output_wctt)
+    self.wctt_socket.sendall(analysis_precision.to_bytes(4, byteorder="big", signed=True))
+    result = ""
+    while result != "done" and result != "error":
+      result += self.wctt_socket.recv(1024).decode()
+    if result != "done":
+      sys.exit("Error analyzing the topology file in the temporary directory.\n")
 
   def _create_conflict(self, sol, conflict_strategy):
     """Analyse the result of the WCTT analysis (in `timing-analysis-results/topology_WCTT.csv`) and extract a conflict if it is unsuccessful, otherwise returns True."""
-    self._print("create_conflict: " + conflict_strategy)
-    with open(self.output_analysis, 'r') as fanalysis:
+    self._print("create_conflict (only if the WCTT failed): " + conflict_strategy)
+    with open(self.output_wctt, 'r') as fanalysis:
       for _ in range(5):
         next(fanalysis)
       wctt = csv.DictReader(fanalysis, delimiter=';')
@@ -111,7 +108,7 @@ class WCTT:
         # if the column slack is empty, it means the frame is scheduled using a best-effort strategy so no hard deadline.
         if row["Slack(ms)"] != '' and float(row["Slack(ms)"]) < 0:
           self._print("WCTT conflict: " + row["Name"] + ";" + row["Routing"] + ";" +row["Slack(ms)"])
-          conflicts.append(conflict_gen(self, row, sol))
+          conflicts.append(conflict_gen(row, sol))
           if self.is_global_conflict():
             break
       if conflicts == []:
@@ -135,16 +132,16 @@ class WCTT:
     """Given a service `service_name`, return its "service index" and the index of the processor on which the service is allocated on."""
     services2names = self.instance["services2names"]
     i = services2names.index(service_name)
-    loc = sol["services2locs"][i]
+    loc = sol.services2locs[i]
     return i, loc
 
   def _get_target_service(self, service_from, loc_to, sol):
     """Given a service `service_from` that is communicating with a service on processor `loc_to`, find the index of the services it is communicating with.
        It is possible that several services placed on the same processor are communicating with `service_from`, in which case we return them all. """
     services_to = []
-    for x in range(len(self.instance["coms"][service_from])):
+    for x, sfrom in enumerate(self.instance["coms"][service_from]):
       # If we communicate with `x` and `x` is placed on `loc_to`.
-      if self.instance["coms"][service_from][x] != 0 and sol["services2locs"][x] == loc_to:
+      if sfrom != 0 and sol.services2locs[x] == loc_to:
         services_to.append(x)
     if services_to == []:
       exit("Bug: a service has no communication in coms, but still had a negative delay for a communication...")
@@ -153,16 +150,14 @@ class WCTT:
   def not_assignment(self, row, sol):
     """Given an assignment of services to locations, returns the logical negation of this assignment."""
     disjunction = []
-    for i in range(len(sol["services2locs"])):
-      c = sol["services2locs"][i]
+    for i, c in enumerate(sol.services2locs):
       disjunction.append(f"services2locs[{i+1}] != {c}")
     return '(' + (' \\/ '.join(disjunction)) + ')'
 
   def decrease_one_link_charge(self, row, sol):
     """Given an assignment of services to locations, we force the load of at least one link to be strictly less than its current load."""
     disjunction = []
-    for i in range(len(sol["charge"])):
-      c = sol["charge"][i]
+    for i, c in enumerate(sol.charge):
       disjunction.append(f"charge[{i+1}] < {c}")
     return ' \\/ '.join(disjunction)
 
@@ -170,8 +165,8 @@ class WCTT:
     """Given an assignment of services to locations, we force the load of the link with the highest load to be strictly less than its current load."""
     max_charge = 0
     max_i = 0
-    for i in range(len(sol["charge"])):
-      c = int(sol["charge"][i])
+    for i in range(len(sol.charge)):
+      c = int(sol.charge[i])
       if c > max_charge:
         max_charge = c
         max_i = i

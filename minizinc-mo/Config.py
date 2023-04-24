@@ -1,4 +1,3 @@
-import os
 import argparse
 import multiprocessing
 
@@ -23,6 +22,7 @@ class Config:
     parser.add_argument('--uf_conflicts_combinator', required=True) # Must be "and" or "or".
     parser.add_argument('--cp_strategy', required=True)             # Must be "free" or the name of a CP strategy (only for information purposes, the strategy must be described in the model).
     parser.add_argument('--algorithm', required=True)               # Must be either "solve-mo-then-uf" or "cusolve-mo".
+    parser.add_argument('--fzn_optimisation_level', required=True, type=int)
     args = parser.parse_args()
     Config.clean_dir_name(args.bin)
     Config.clean_dir_name(args.topology_dir)
@@ -46,7 +46,7 @@ class Config:
     self.uf_conflicts_combinator = args.uf_conflicts_combinator
     self.cp_strategy = args.cp_strategy
     self.algorithm = args.algorithm
-    self.fzn_optimisation_level = 1
+    self.fzn_optimisation_level = args.fzn_optimisation_level
 
   def clean_dir_name(dir):
     """Remove the last '/' if it exists."""

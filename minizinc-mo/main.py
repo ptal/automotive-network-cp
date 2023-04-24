@@ -74,24 +74,25 @@ def build_solver(instance, config, statistics):
     combinator = " /\\ "
   else:
     combinator = " \\/ "
-  wctt = WCTT(instance, config, combinator)
   osolve = build_osolver(instance, config, statistics)
   osolve_mo = MO(instance, osolve)
   if config.algorithm == "osolve-mo":
     solver = osolve_mo
-  elif config.algorithm == "osolve-mo-then-uf":
-    filterWCTT = FilterWCTT(statistics, osolve_mo.pareto_front, wctt)
-    solver = Sequence([osolve_mo, filterWCTT], True)
-  elif config.algorithm == "cusolve-mo":
-    if config.uf_conflict_strategy == "not_assignment":
-      solver = USolve(instance, statistics, osolve_mo, \
-        lambda res: wctt.analyse(res.solution, config.uf_conflict_strategy))
-    else:
-      solver = CUSolve(instance, statistics, osolve_mo, \
-        lambda res: wctt.analyse(res.solution, config.uf_conflict_strategy), \
-        lambda res: wctt.analyse(res.solution, "not_assignment"))
   else:
-    exit(f"Unknown algorithm {config.algorithm}")
+    wctt = WCTT(instance, config, combinator)
+    if config.algorithm == "osolve-mo-then-uf":
+      filterWCTT = FilterWCTT(statistics, osolve_mo.pareto_front, wctt)
+      solver = Sequence([osolve_mo, filterWCTT], True)
+    elif config.algorithm == "cusolve-mo":
+      if config.uf_conflict_strategy == "not_assignment":
+        solver = USolve(instance, statistics, osolve_mo, \
+          lambda res: wctt.analyse(res.solution, config.uf_conflict_strategy))
+      else:
+        solver = CUSolve(instance, statistics, osolve_mo, \
+          lambda res: wctt.analyse(res.solution, config.uf_conflict_strategy), \
+          lambda res: wctt.analyse(res.solution, "not_assignment"))
+    else:
+      exit(f"Unknown algorithm {config.algorithm}")
   return solver, osolve_mo.pareto_front
 
 def build_osolver(instance, config, statistics):
