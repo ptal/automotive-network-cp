@@ -18,7 +18,7 @@ class FilterWCTT:
   def _filter_wctt(self, res):
     self.statistics["uf_calls"] += 1
     time_start = datetime.now()
-    conflict = self.wctt.analyse(res.solution)
+    conflict = self.wctt.analyse(res.solution, "na", "na")
     time_end = datetime.now()
     self.statistics["uf_time_sec"] += (time_end - time_start).total_seconds()
     if conflict == "true":

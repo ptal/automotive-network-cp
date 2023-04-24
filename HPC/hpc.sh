@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --time=00:05:00
+#SBATCH --time=36:00:00
 #SBATCH --partition=batch
 #SBATCH --nodes=1
 #SBATCH --mem=0
@@ -18,7 +18,7 @@ source ../mo-mzn/hpcpy/bin/activate
 
 cd ../minizinc-mo
 strategy="firstfail-random"
-uf_conflict_strategies=("decrease_one_link_charge" "decrease_max_link_charge" "forbid_source_alloc" "forbid_target_alloc" "forbid_source_target_alloc_or" "forbid_source_target_alloc_and" "decrease_hop_or" "decrease_hop_and")
+uf_conflict_strategies=("not_assignment" "decrease_one_link_charge" "decrease_max_link_charge" "forbid_source_alloc" "forbid_target_alloc" "forbid_source_target_alloc_or" "forbid_source_target_alloc_and" "decrease_hop_or" "decrease_hop_and")
 uf_conflict_combinators=("and" "or")
 cp_timeout_sec=1800
 solver="gecode"
@@ -45,7 +45,6 @@ do
     done
   fi
 done
-wait
 
 algorithm="osolve-mo-then-uf"
 for f in ../data/dzn/*005_u*.dzn;
@@ -55,8 +54,9 @@ do
     data_name=$(basename -- "$f" .dzn)
     log_file=$res_dir"/"$cp_strategy"_"$algorithm"_"$cp_timeout_sec"_"$data_name
     echo "Start srun...."$res_dir
-    srun --exclusive --cpu-bind=cores -n1 -c16 python3 main.py --model_mzn "../model/automotive-sat.mzn" --objectives_dzn "../model/objectives.dzn" --dzn_dir "../data/dzn/" --topology_dir "../data/raw-csv" --solver_name "$solver" --cp_timeout_sec $cp_timeout_sec --tmp_dir "$res_dir" --bin "../bin" --summary "$summary" --uf_conflict_strategy "$uf_conflict_strategy" --uf_conflicts_combinator "$uf_conflict_combinator" --cp_strategy="$cp_strategy" --fzn_optimisation_level 1 --algorithm "$algorithm" "$data_name" | tee -a $res_dir/"output.txt" &
+    srun --exclusive --cpu-bind=cores -n1 -c16 python3 main.py --model_mzn "../model/automotive-sat.mzn" --objectives_dzn "../model/objectives.dzn" --dzn_dir "../data/dzn/" --topology_dir "../data/raw-csv" --solver_name "$solver" --cp_timeout_sec $cp_timeout_sec --tmp_dir "$res_dir" --bin "../bin" --summary "$summary" --uf_conflict_strategy "na" --uf_conflicts_combinator "na" --cp_strategy="$cp_strategy" --fzn_optimisation_level 1 --algorithm "$algorithm" "$data_name" | tee -a $res_dir/"output.txt" &
     [[ $((tasks_counter%64)) -eq 0 ]] && wait
     let tasks_counter++
   fi
 done
+wait

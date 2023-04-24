@@ -17,9 +17,6 @@ class WCTT:
      Args:
       instance (Instance): The instance of the MiniZinc constraint problem.
       config (Config): The configuration of the solving algorithm.
-      conflict_combinator (String): The combinator used to combine the conflicts found by the strategy `config.uf_conflict_strategy`.
-        It can be either " /\\ " (and) or " \\/ " (or).
-        If you are not using `CUSolve` and use over-approximating conflicts, we must use " \// " (or), otherwise the algorithm might miss solutions.
       verbose (Bool): Print the steps of the analysis.
   """
 
@@ -39,26 +36,28 @@ class WCTT:
     self.wctt_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.wctt_socket.connect((self.host, self.port))
 
-  def __init__(self, instance, config, conflict_combinator = " /\\ ", verbose = True):
+  def __init__(self, instance, config, verbose = True):
     self.instance = instance
     self.config = config
     self.tmp_dir = TemporaryDirectory(dir=config.tmp_dir)
-    self.conflict_combinator = conflict_combinator
     self.verbose = verbose
     self._start_wctt_server()
     self._print("WCTT temporary directory: " + self.tmp_dir.name)
 
-  def analyse(self, sol, conflict_strategy="not_assignment"):
+  def analyse(self, sol, conflict_strategy, conflicts_combinator):
     """Perform the WCTT analysis on `sol` and produce a conflict on unschedulable solution.
        Args:
          sol (Solution): The MiniZinc solution to analyse.
          conflict_strategy (String): The strategy to use to create the conflict, it must be the name of a conflict method of this class.
+         conflict_combinator (String): The combinator ("and" or "or") used to combine the conflicts found by the strategy `config.uf_conflict_strategy`.
+          If you are not using `CUSolve` and use over-approximating conflicts, we must use "or", otherwise the algorithm might miss solutions.
+
        Returns: A string describing the conflict as a MiniZinc constraint if the solution is not schedulable, `True` otherwise.
     """
     solution_dzn = self._solution2dzn(sol)
     self._dzn2topology(solution_dzn)
     self._topology2analysis()
-    return self._create_conflict(sol, conflict_strategy)
+    return self.create_conflict(sol, conflict_strategy, conflicts_combinator)
 
   def _print(self, msg):
     if self.verbose:
@@ -95,7 +94,7 @@ class WCTT:
     if result != "done":
       sys.exit("Error analyzing the topology file in the temporary directory.\n")
 
-  def _create_conflict(self, sol, conflict_strategy):
+  def create_conflict(self, sol, conflict_strategy, conflicts_combinator):
     """Analyse the result of the WCTT analysis (in `timing-analysis-results/topology_WCTT.csv`) and extract a conflict if it is unsuccessful, otherwise returns True."""
     self._print("create_conflict (only if the WCTT failed): " + conflict_strategy)
     with open(self.output_wctt, 'r') as fanalysis:
@@ -109,12 +108,15 @@ class WCTT:
         if row["Slack(ms)"] != '' and float(row["Slack(ms)"]) < 0:
           self._print("WCTT conflict: " + row["Name"] + ";" + row["Routing"] + ";" +row["Slack(ms)"])
           conflicts.append(conflict_gen(row, sol))
-          if self.is_global_conflict():
+          if self._is_global_conflict():
             break
       if conflicts == []:
         return "true"
       else:
-        return "(" + self.conflict_combinator.join(conflicts) + ")"
+        if conflicts_combinator == "and":
+          return "(" + " /\\ ".join(conflicts) + ")"
+        else:
+          return "(" + " \\/ ".join(conflicts) + ")"
 
   def _is_global_conflict(self):
     """True if the conflict is global, i.e. it is a conflict on all the services and not only the ones directly responsible for the WCTT analysis failure."""
@@ -146,6 +148,10 @@ class WCTT:
     if services_to == []:
       exit("Bug: a service has no communication in coms, but still had a negative delay for a communication...")
     return services_to
+
+  def na(self, row, sol):
+    """Not applicable conflict, meaning the caller do not care about the conflict."""
+    return "false"
 
   def not_assignment(self, row, sol):
     """Given an assignment of services to locations, returns the logical negation of this assignment."""

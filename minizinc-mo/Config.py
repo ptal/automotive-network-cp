@@ -18,8 +18,8 @@ class Config:
     parser.add_argument('--tmp_dir', required=True)
     parser.add_argument('--bin', required=True)
     parser.add_argument('--summary', required=True)
-    parser.add_argument('--uf_conflict_strategy', required=True)    # Must be the name of a conflict method of WCTT.
-    parser.add_argument('--uf_conflicts_combinator', required=True) # Must be "and" or "or".
+    parser.add_argument('--uf_conflict_strategy', required=True)    # Must be the name of a conflict method of WCTT (or "na" if non-applicable)
+    parser.add_argument('--uf_conflicts_combinator', required=True) # Must be "and" or "or" (or "na" if non-applicable).
     parser.add_argument('--cp_strategy', required=True)             # Must be "free" or the name of a CP strategy (only for information purposes, the strategy must be described in the model).
     parser.add_argument('--algorithm', required=True)               # Must be either "solve-mo-then-uf" or "cusolve-mo".
     parser.add_argument('--fzn_optimisation_level', required=True, type=int)

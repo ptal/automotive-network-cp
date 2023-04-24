@@ -23,11 +23,12 @@ class OSolve:
     OSolve.init_statistics(self.statistics)
 
   def init_statistics(statistics):
-    """This combinator computes 4 statistics: cp_solution, cp_total_nodes, time_cp_sec, time_fzn_sec."""
+    """This combinator computes these statistics: cp_solution, cp_total_nodes, time_cp_sec, time_fzn_sec, cp_solutions_list."""
     statistics["cp_solutions"] = 0
     statistics["cp_total_nodes"] = 0
     statistics["time_cp_sec"] = 0
     statistics["time_fzn_sec"] = 0
+    statistics["cp_solutions_list"] = []
 
   def solve(self):
     """Solve the constraint model described by `instance` with the local constraints and yield all solutions found.
@@ -75,8 +76,6 @@ class OSolve:
       self.instance.add_string("constraint " + constraint + ";\n")
 
   def update_statistics(self, res):
-    if res.solution is not None:
-      self.statistics["cp_solutions"] += 1
     if "nodes" in res.statistics:
       self.statistics["cp_total_nodes"] += res.statistics["nodes"]
     if "initTime" in res.statistics:
@@ -87,3 +86,6 @@ class OSolve:
       self.statistics["time_cp_sec"] += res.statistics["time"].total_seconds() / 1000
     if "flatTime" in res.statistics:
       self.statistics["time_fzn_sec"] += res.statistics["flatTime"].total_seconds()
+    if res.solution is not None:
+      self.statistics["cp_solutions"] += 1
+      self.statistics["cp_solutions_list"].append(self.statistics["time_fzn_sec"] + self.statistics["time_cp_sec"])

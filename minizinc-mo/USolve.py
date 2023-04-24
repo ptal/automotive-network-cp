@@ -19,11 +19,12 @@ class USolve:
     USolve.init_statistics(self.statistics)
 
   def init_statistics(statistics):
-    """We add 4 statistics about the uf function: uf_time_sec, uf_calls, uf_solutions, uf_conflicts"""
+    """We add statistics about the uf function: uf_time_sec, uf_calls, uf_solutions, uf_conflicts, uf_solutions_list."""
     statistics["uf_time_sec"] = 0
     statistics["uf_calls"] = 0
     statistics["uf_solutions"] = 0
     statistics["uf_conflicts"] = 0
+    statistics["uf_solutions_list"] = []
 
   def solve(self):
     self._subadd_local_constaints()
@@ -34,10 +35,12 @@ class USolve:
       time_end = datetime.now()
       self.statistics["uf_time_sec"] += (time_end - time_start).total_seconds()
       if conflict == "true":
+        self.statistics["uf_solutions_list"].append(True)
         self.statistics["uf_solutions"] += 1
         self.local_constraints = []
         yield x
       else:
+        self.statistics["uf_solutions_list"].append(False)
         self.statistics["uf_conflicts"] += 1
         self._subadd_local_constaints()
         self.add_global_constraint(conflict)
