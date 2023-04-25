@@ -82,7 +82,7 @@ def build_solver(instance, config, statistics):
 
 def build_osolver(instance, config, statistics):
   free_search = config.cp_strategy == "free_search"
-  return OSolve(instance, statistics, Timer(config.cp_timeout_sec), config.cores, free_search, config.fzn_optimisation_level)
+  return OSolve(instance, statistics, Timer(config.cp_timeout_sec), config.threads, free_search, config.fzn_optimisation_level)
 
 def csv_header(config):
   statistics = {}
