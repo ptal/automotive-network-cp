@@ -39,7 +39,7 @@ do
       for uf_conflict_combinator in ${uf_conflict_combinators[@]}; do
         log_file=$res_dir"/"$cp_strategy"_"$uf_conflict_strategy"_"$uf_conflict_combinator"_"$algorithm"_"$cp_timeout_sec"_"$data_name
         echo "Start srun...."$res_dir
-        srun --exclusive --cpu-bind=cores -n1 -c $cores python3 main.py --cores $cores --model_mzn "../model/automotive-sat.mzn" --objectives_dzn "../model/objectives.dzn" --dzn_dir "../data/dzn/" --topology_dir "../data/raw-csv" --solver_name "$solver" --cp_timeout_sec $cp_timeout_sec --tmp_dir "$res_dir" --bin "../bin" --summary "$summary" --uf_conflict_strategy "$uf_conflict_strategy" --uf_conflicts_combinator "$uf_conflict_combinator" --cp_strategy="$cp_strategy" --fzn_optimisation_level 1 --algorithm "$algorithm" "$data_name" | tee -a "$log_file" &
+        srun --exclusive --cpu-bind=cores -n1 -c $cores python3 main.py --cores $cores --model_mzn "../model/automotive-sat.mzn" --objectives_dzn "../model/objectives.dzn" --dzn_dir "../data/dzn/" --topology_dir "../data/raw-csv" --solver_name "$solver" --cp_timeout_sec $cp_timeout_sec --tmp_dir "$res_dir" --bin "../bin" --summary "$summary" --uf_conflict_strategy "$uf_conflict_strategy" --uf_conflicts_combinator "$uf_conflict_combinator" --cp_strategy="$cp_strategy" --fzn_optimisation_level 1 --algorithm "$algorithm" "$data_name" 2>&1 | tee -a "$log_file" &
         [[ $((tasks_counter%64)) -eq 0 ]] && wait
         let tasks_counter++
       done
@@ -55,7 +55,7 @@ do
     data_name=$(basename -- "$f" .dzn)
     log_file=$res_dir"/"$cp_strategy"_"$algorithm"_"$cp_timeout_sec"_"$data_name
     echo "Start srun...."$res_dir
-    srun --exclusive --cpu-bind=cores -n1 -c $cores python3 main.py --cores $cores --model_mzn "../model/automotive-sat.mzn" --objectives_dzn "../model/objectives.dzn" --dzn_dir "../data/dzn/" --topology_dir "../data/raw-csv" --solver_name "$solver" --cp_timeout_sec $cp_timeout_sec --tmp_dir "$res_dir" --bin "../bin" --summary "$summary" --uf_conflict_strategy "na" --uf_conflicts_combinator "na" --cp_strategy="$cp_strategy" --fzn_optimisation_level 1 --algorithm "$algorithm" "$data_name" | tee -a $res_dir/"output.txt" &
+    srun --exclusive --cpu-bind=cores -n1 -c $cores python3 main.py --cores $cores --model_mzn "../model/automotive-sat.mzn" --objectives_dzn "../model/objectives.dzn" --dzn_dir "../data/dzn/" --topology_dir "../data/raw-csv" --solver_name "$solver" --cp_timeout_sec $cp_timeout_sec --tmp_dir "$res_dir" --bin "../bin" --summary "$summary" --uf_conflict_strategy "na" --uf_conflicts_combinator "na" --cp_strategy="$cp_strategy" --fzn_optimisation_level 1 --algorithm "$algorithm" "$data_name" 2>&1 | tee -a $res_dir/"output.txt" &
     [[ $((tasks_counter%64)) -eq 0 ]] && wait
     let tasks_counter++
   fi
