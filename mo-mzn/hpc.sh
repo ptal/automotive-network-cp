@@ -1,10 +1,11 @@
 #!/bin/bash -l
 #SBATCH --time=00:05:00
 #SBATCH --partition=batch
-#SBATCH --nodes=8
+#SBATCH --nodes=1
 #SBATCH --mem=0
 #SBATCH --ntasks-per-node=8
 #SBATCH --cpus-per-task=16
+#SBATCH -w aion-0180
 
 ulimit -u 10000
 module load compiler/GCC/10.2.0
@@ -39,7 +40,7 @@ do
             res_dir="test/"$solver"_"$strategy"_"$uf_strategy"_"$algorithm"/"$data_name
             mkdir -p $res_dir
 	    echo "Start srun...."$res_dir
-            srun -n1 -c16 python3 mo.py "$data_name" --model_mzn="../model/automotive-sat.mzn" --objectives_dzn="../model/objectives.dzn" --dzn_dir="../data/dzn" --topology_dir="../data/raw-csv" --solver_name="$solver" --timeout_sec="$timeout_sec" --results_dir="$res_dir" --bin="../bin" --summary="$summary" --uf_strategy="$uf_strategy" --cp_strategy="$strategy" --algorithm="$algorithm" | tee -a $res_dir/"output.txt" &
+            srun --exclusive --cpu-bind=cores -n1 -c16 python3 mo.py "$data_name" --model_mzn="../model/automotive-sat.mzn" --objectives_dzn="../model/objectives.dzn" --dzn_dir="../data/dzn" --topology_dir="../data/raw-csv" --solver_name="$solver" --timeout_sec="$timeout_sec" --results_dir="$res_dir" --bin="../bin" --summary="$summary" --uf_strategy="$uf_strategy" --cp_strategy="$strategy" --algorithm="$algorithm" | tee -a $res_dir/"output.txt" &
             [[ $((tasks_counter%64)) -eq 0 ]] && wait
             let tasks_counter++
           done
