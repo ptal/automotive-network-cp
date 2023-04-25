@@ -17,7 +17,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/deps/gecode
 source ../mo-mzn/hpcpy/bin/activate
 
 cd ../minizinc-mo
-strategy="firstfail-random"
+cp_strategy="firstfail-random"
 uf_conflict_strategies=("not_assignment" "decrease_one_link_charge" "decrease_max_link_charge" "forbid_source_alloc" "forbid_target_alloc" "forbid_source_target_alloc_or" "forbid_source_target_alloc_and" "decrease_hop_or" "decrease_hop_and")
 uf_conflict_combinators=("and" "or")
 cp_timeout_sec=1800
