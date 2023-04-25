@@ -1,4 +1,5 @@
 from minizinc import Status
+import minizinc
 
 class OSolve:
   """A constraint programming solver repeatedly solving a constraint model without modifying it.
@@ -12,10 +13,10 @@ class OSolve:
        optimisation_level (Int): The optimisation level of the preprocessing step when converting MiniZinc to FlatZinc (from 1 to 5). Note that this is done before each call to `solve`.
   """
 
-  def __init__(self, instance, statistics, timer, cores=None, free_search=False, optimisation_level=1):
+  def __init__(self, instance, statistics, timer, threads=None, free_search=False, optimisation_level=1):
     self.instance = instance
     self.local_constraints = ""
-    self.cores = cores
+    self.threads = threads
     self.timer = timer
     self.free_search = free_search
     self.optimisation_level = optimisation_level
@@ -47,12 +48,18 @@ class OSolve:
       with self.instance.branch() as child:
         child.add_string(self.local_constraints)
         self.local_constraints = ""
-        res = child.solve(
-          optimisation_level = self.optimisation_level,
-          all_solutions = False,
-          free_search = self.free_search,
-          timeout = timeout,
-          processes = self.cores)
+        while True:
+          try:
+            res = child.solve(
+              optimisation_level = self.optimisation_level,
+              all_solutions = False,
+              free_search = self.free_search,
+              timeout = timeout,
+              processes = self.threads)
+            break
+          except minizinc.error.MiniZincError:
+            print("The solver crashed... Retrying...") # It can happen with GeCode in parallel mode.
+            pass
       if self.timer != None:
         self.timer.pause()
       self.update_statistics(res)
