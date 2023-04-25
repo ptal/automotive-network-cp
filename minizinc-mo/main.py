@@ -15,16 +15,6 @@ import logging
 from filelock import FileLock
 from tempfile import NamedTemporaryFile
 
-def bug_mzn(config):
-  # Workaround to bug https://github.com/MiniZinc/minizinc-python/issues/80
-  filenames = [config.input_mzn, config.input_dzn]
-  tmp_file = NamedTemporaryFile(dir=config.tmp_dir, mode="w+", suffix=".mzn", delete=True)
-  for fname in filenames:
-      with open(fname) as infile:
-          tmp_file.write(infile.read())
-  tmp_file.seek(0)
-  return tmp_file
-
 def init_top_level_statistics(statistics):
   statistics["exhaustive"] = False
   statistics["hypervolume"] = 0
@@ -33,10 +23,8 @@ def init_top_level_statistics(statistics):
 def main():
   config = Config()
   check_already_computed(config)
-  tmp_file = bug_mzn(config)
-  model = Model(tmp_file.name)
-  # model = Model(config.input_mzn)
-  # model.add_file(config.input_dzn, parse_data=True)
+  model = Model(config.input_mzn)
+  model.add_file(config.input_dzn, parse_data=True)
   model.add_file(config.objectives_dzn, parse_data=True)
   mzn_solver = Solver.lookup(config.solver_name)
   config.initialize_cores(mzn_solver)
