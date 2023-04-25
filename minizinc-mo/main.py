@@ -22,6 +22,7 @@ def bug_mzn(config):
   for fname in filenames:
       with open(fname) as infile:
           tmp_file.write(infile.read())
+  tmp_file.seek(0)
   return tmp_file
 
 def init_top_level_statistics(statistics):
