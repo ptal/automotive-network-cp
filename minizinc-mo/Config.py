@@ -18,6 +18,7 @@ class Config:
     parser.add_argument('--tmp_dir', required=True)
     parser.add_argument('--bin', required=True)
     parser.add_argument('--summary', required=True)
+    parser.add_argument('--cores', type=int)
     parser.add_argument('--uf_conflict_strategy', required=True)    # Must be the name of a conflict method of WCTT (or "na" if non-applicable)
     parser.add_argument('--uf_conflicts_combinator', required=True) # Must be "and" or "or" (or "na" if non-applicable).
     parser.add_argument('--cp_strategy', required=True)             # Must be "free" or the name of a CP strategy (only for information purposes, the strategy must be described in the model).
@@ -47,6 +48,7 @@ class Config:
     self.cp_strategy = args.cp_strategy
     self.algorithm = args.algorithm
     self.fzn_optimisation_level = args.fzn_optimisation_level
+    self.cores = args.cores
 
   def clean_dir_name(dir):
     """Remove the last '/' if it exists."""
@@ -61,15 +63,19 @@ class Config:
     statistics["uf_conflict_strategy"] = self.uf_conflict_strategy
     statistics["uf_conflicts_combinator"] = self.uf_conflicts_combinator
     statistics["fzn_optimisation_level"] = self.fzn_optimisation_level
+    statistics["threads"] = self.threads
     statistics["cores"] = self.cores
     statistics["cp_timeout_sec"] = self.cp_timeout_sec
 
   def initialize_cores(self, solver):
     """If the solver supports parallelization, use twice the number of available cores. Otherwise, use only one core."""
     if "-p" in solver.stdFlags:
-      self.cores = multiprocessing.cpu_count() * 2
+      if self.cores is None:
+        self.cores = multiprocessing.cpu_count()
+      self.threads = self.cores * 2
     else:
       self.cores = 1
+      self.threads = 1
 
   def wctt_analyser(self):
     return self.bin_dir + "/pegase-timing-analysis.jar"
