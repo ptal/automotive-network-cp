@@ -1,10 +1,10 @@
 #!/bin/bash -l
-#SBATCH --time=01:00:00
+#SBATCH --time=24:00:00
 #SBATCH --partition=batch
 #SBATCH --nodes=1
 #SBATCH --mem=0
-#SBATCH --ntasks-per-node=8
-#SBATCH --cpus-per-task=16
+#SBATCH --ntasks-per-node=16
+#SBATCH --cpus-per-task=8
 #SBATCH -w aion-0180
 
 ulimit -u 10000
@@ -20,14 +20,15 @@ cd ../minizinc-mo
 cp_strategy="firstfail-random"
 uf_conflict_strategies=("not_assignment" "decrease_one_link_charge" "decrease_max_link_charge" "forbid_source_alloc" "forbid_target_alloc" "forbid_source_target_alloc_or" "forbid_source_target_alloc_and" "decrease_hop_or" "decrease_hop_and")
 uf_conflict_combinators=("and" "or")
-cp_timeout_sec=1800
+cp_timeout_sec=900
 solver="gecode"
 summary="../results/summary_hpc.csv"
 res_dir="../results"
 
 echo "Start Loop, yeay."
 
-cores=16
+tasks=16
+cores=8
 tasks_counter=1
 algorithm="cusolve-mo"
 for f in ../data/dzn/*005_u*.dzn;
@@ -40,7 +41,7 @@ do
         log_file=$res_dir"/"$cp_strategy"_"$uf_conflict_strategy"_"$uf_conflict_combinator"_"$algorithm"_"$cp_timeout_sec"_"$data_name
         echo "Start srun...."$res_dir
         srun --exclusive --cpu-bind=cores -n1 -c $cores python3 main.py --cores $cores --model_mzn "../model/automotive-sat.mzn" --objectives_dzn "../model/objectives.dzn" --dzn_dir "../data/dzn/" --topology_dir "../data/raw-csv" --solver_name "$solver" --cp_timeout_sec $cp_timeout_sec --tmp_dir "$res_dir" --bin "../bin" --summary "$summary" --uf_conflict_strategy "$uf_conflict_strategy" --uf_conflicts_combinator "$uf_conflict_combinator" --cp_strategy="$cp_strategy" --fzn_optimisation_level 1 --algorithm "$algorithm" "$data_name" 2>&1 | tee -a "$log_file" &
-        [[ $((tasks_counter%8)) -eq 0 ]] && wait
+        [[ $((tasks_counter % tasks)) -eq 0 ]] && wait
         let tasks_counter++
       done
     done
@@ -56,7 +57,7 @@ do
     log_file=$res_dir"/"$cp_strategy"_"$algorithm"_"$cp_timeout_sec"_"$data_name
     echo "Start srun...."$res_dir
     srun --exclusive --cpu-bind=cores -n1 -c $cores python3 main.py --cores $cores --model_mzn "../model/automotive-sat.mzn" --objectives_dzn "../model/objectives.dzn" --dzn_dir "../data/dzn/" --topology_dir "../data/raw-csv" --solver_name "$solver" --cp_timeout_sec $cp_timeout_sec --tmp_dir "$res_dir" --bin "../bin" --summary "$summary" --uf_conflict_strategy "na" --uf_conflicts_combinator "na" --cp_strategy="$cp_strategy" --fzn_optimisation_level 1 --algorithm "$algorithm" "$data_name" 2>&1 | tee -a $res_dir/"output.txt" &
-    [[ $((tasks_counter%8)) -eq 0 ]] && wait
+    [[ $((tasks_counter%tasks)) -eq 0 ]] && wait
     let tasks_counter++
   fi
 done

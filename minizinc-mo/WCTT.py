@@ -150,7 +150,6 @@ class WCTT:
       print(f"service_from = {service_from}, loc_to = {loc_to}")
       print(sol.services2locs[0])
       print(self.instance["coms"][service_from])
-      input()
       exit("Bug: a service has no communication in coms, but still had a negative delay for a communication...")
     return services_to
 
