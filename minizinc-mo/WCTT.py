@@ -124,14 +124,15 @@ class WCTT:
         or self.config.uf_conflict_strategy == "decrease_max_link_charge" \
         or self.config.uf_conflict_strategy == "not_assignment"
 
-  def _get_index_loc_from_loc_name(self, loc_name, sol):
+  def _get_index_loc_from_loc_name(self, loc_name):
     for i, x in enumerate(self.instance["locations2names"]):
       if x == loc_name:
-        return i
+        return i+1
     exit("Bug: The WCTT analysis produced a location name unknown to the constraint model...")
 
   def _get_index_loc_from_service_name(self, service_name, sol):
-    """Given a service `service_name`, return its "service index" and the index of the processor on which the service is allocated on."""
+    """Given a service `service_name`, return its "service index" and the index of the processor on which the service is allocated on.
+       Beware that the service index is 0-based and the processor index is 1-based."""
     services2names = self.instance["services2names"]
     i = services2names.index(service_name)
     loc = sol.services2locs[i]
@@ -146,6 +147,10 @@ class WCTT:
       if sfrom != 0 and sol.services2locs[x] == loc_to:
         services_to.append(x)
     if services_to == []:
+      print(f"service_from = {service_from}, loc_to = {loc_to}")
+      print(sol.services2locs[0])
+      print(self.instance["coms"][service_from])
+      input()
       exit("Bug: a service has no communication in coms, but still had a negative delay for a communication...")
     return services_to
 
@@ -181,13 +186,13 @@ class WCTT:
   def forbid_source_alloc(self, row, sol):
     """Given a communication with negative slack described in `row`, forbid the service `row["Name"]` to be allocated on its current processor or the processor it is communicating with."""
     service_from, loc_from = self._get_index_loc_from_service_name(row["Name"], sol)
-    loc_to = self._get_index_loc_from_loc_name(row["Receiver"], sol)
+    loc_to = self._get_index_loc_from_loc_name(row["Receiver"])
     return f"services2locs[{service_from+1}] != {loc_from} /\\ services2locs[{service_from+1}] != {loc_to}"
 
   def forbid_target_alloc(self, row, sol):
     """Given a communication with negative slack described in `row`, forbid one of the services communicating with `row["Name"]` to be allocated on the processor of `row["Name"]` or the processor it is currently allocated on."""
     service_from, loc_from = self._get_index_loc_from_service_name(row["Name"], sol)
-    loc_to = self._get_index_loc_from_loc_name(row["Receiver"], sol)
+    loc_to = self._get_index_loc_from_loc_name(row["Receiver"])
     services_to = self._get_target_service(service_from, loc_to, sol)
     disjunction = []
     for s in services_to:
@@ -207,7 +212,7 @@ class WCTT:
 
   def _decrease_hop(self, combinator, row, sol):
     service_from, loc_from = self._get_index_loc_from_service_name(row["Name"], sol)
-    loc_to = self._get_index_loc_from_loc_name(row["Receiver"], sol)
+    loc_to = self._get_index_loc_from_loc_name(row["Receiver"])
     services_to = self._get_target_service(service_from, loc_to, sol)
     combination = []
     for s in services_to:
