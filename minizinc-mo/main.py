@@ -52,8 +52,7 @@ def check_already_computed(config):
     with open(config.summary_filename, 'r') as fsummary:
       summary = csv.DictReader(fsummary, delimiter=';')
       for row in summary:
-        # Note that only cusolve-mo uses the uf_conflict_strategy, so we do not care about this property for other algorithms.
-        if row["instance"] == config.data_name and row["cp_solver"] == config.solver_name and row["algorithm"] == config.algorithm and row["cp_strategy"] == config.cp_strategy and ((row["uf_conflict_strategy"] == config.uf_conflict_strategy and row["uf_conflicts_combinator"] == config.uf_conflicts_combinator) or config.algorithm != "cusolve-mo") and row["fzn_optimisation_level"] == config.fzn_optimisation_level and row["cores"] == config.cores and row["timeout_sec"] == str(config.timeout_sec):
+        if row["instance"] == config.data_name and row["cp_solver"] == config.solver_name and row["algorithm"] == config.algorithm and row["cp_strategy"] == config.cp_strategy and row["uf_conflict_strategy"] == config.uf_conflict_strategy and row["uf_conflicts_combinator"] == config.uf_conflicts_combinator and row["fzn_optimisation_level"] == config.fzn_optimisation_level and row["cores"] == config.cores and row["cp_timeout_sec"] == str(config.timeout_sec):
          print(f"Skipping {config.results_dir} because it is already in {config.summary}")
          exit(0)
   return False
