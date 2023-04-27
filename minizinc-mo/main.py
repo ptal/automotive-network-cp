@@ -21,12 +21,12 @@ def init_top_level_statistics(statistics):
 
 def main():
   config = Config()
-  check_already_computed(config)
   model = Model(config.input_mzn)
   model.add_file(config.input_dzn, parse_data=True)
   model.add_file(config.objectives_dzn, parse_data=True)
   mzn_solver = Solver.lookup(config.solver_name)
   config.initialize_cores(mzn_solver)
+  check_already_computed(config)
   instance = Instance(mzn_solver, model)
   statistics = {}
   config.init_statistics(statistics)
@@ -51,10 +51,9 @@ def check_already_computed(config):
     with open(config.summary_filename, 'r') as fsummary:
       summary = csv.DictReader(fsummary, delimiter=';')
       for row in summary:
-        if row["instance"] == config.data_name and row["cp_solver"] == config.solver_name and row["algorithm"] == config.algorithm and row["cp_strategy"] == config.cp_strategy and row["uf_conflict_strategy"] == config.uf_conflict_strategy and row["uf_conflicts_combinator"] == config.uf_conflicts_combinator and row["fzn_optimisation_level"] == config.fzn_optimisation_level and row["cores"] == config.cores and row["cp_timeout_sec"] == str(config.timeout_sec):
-         print(f"Skipping {config.results_dir} because it is already in {config.summary}")
+        if row["instance"] == config.data_name and row["cp_solver"] == config.solver_name and row["algorithm"] == config.algorithm and row["cp_strategy"] == config.cp_strategy and row["uf_conflict_strategy"] == config.uf_conflict_strategy and row["uf_conflicts_combinator"] == config.uf_conflicts_combinator and row["fzn_optimisation_level"] == str(config.fzn_optimisation_level) and row["cores"] == str(config.cores) and row["cp_timeout_sec"] == str(config.cp_timeout_sec):
+         print(f"Skipping {config.uid()} because it is already in {config.summary_filename}")
          exit(0)
-  return False
 
 def build_solver(instance, config, statistics):
   osolve = build_osolver(instance, config, statistics)

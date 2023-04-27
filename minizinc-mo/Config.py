@@ -67,6 +67,10 @@ class Config:
     statistics["cores"] = self.cores
     statistics["cp_timeout_sec"] = self.cp_timeout_sec
 
+  def uid(self):
+    """Unique identifier for this experiment."""
+    return self.data_name + "_" + self.cp_strategy + "_" + self.uf_conflict_strategy + "_" + self.uf_conflicts_combinator + "_" + self.algorithm + "_" + str(self.cp_timeout_sec) + "_" + str(self.fzn_optimisation_level) + "_" + str(self.cores)
+
   def initialize_cores(self, solver):
     """If the solver supports parallelization, use twice the number of available cores. Otherwise, use only one core."""
     if "-p" in solver.stdFlags:
