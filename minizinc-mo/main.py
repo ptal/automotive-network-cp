@@ -12,8 +12,7 @@ import csv
 import os
 import traceback
 import logging
-from filelock import FileLock
-from tempfile import NamedTemporaryFile
+from filelock import FileLock, Timeout
 
 def init_top_level_statistics(statistics):
   statistics["exhaustive"] = False
@@ -103,18 +102,25 @@ def create_summary_file(config):
       writer = csv.DictWriter(summary, fieldnames=csv_header(config), delimiter=';')
       writer.writeheader()
 
+def statistics_to_csv(config, statistics):
+  stats_keys = csv_header(config)
+  csv_entry = ""
+  for k in stats_keys:
+    if k in statistics:
+      csv_entry += str(statistics[k])
+    csv_entry += ";"
+  return csv_entry[:-1] + "\n"
+
 def write_statistics(config, statistics):
-  lock = FileLock(config.summary_filename + ".lock")
-  with lock:
-    create_summary_file(config)
-    with open(config.summary_filename, "a") as summary:
-      stats_keys = csv_header(config)
-      csv_entry = ""
-      for k in stats_keys:
-        if k in statistics:
-          csv_entry += str(statistics[k])
-        csv_entry += ";"
-      summary.write(csv_entry[:-1] + "\n")
+  try:
+    lock = FileLock(config.summary_filename + ".lock", timeout=10)
+    with lock:
+      create_summary_file(config)
+      with open(config.summary_filename, "a") as summary:
+        summary.write(statistics_to_csv(config, statistics))
+  except Timeout:
+    print("Could not acquire lock on summary file. Statistics will be printed on standard output instead.")
+    print(statistics_to_csv(config, statistics))
 
 if __name__ == "__main__":
   main()
