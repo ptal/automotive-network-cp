@@ -50,12 +50,14 @@ class OSolve:
         self.local_constraints = ""
         while True:
           try:
+            print("Start the CP solver...")
             res = child.solve(
               optimisation_level = self.optimisation_level,
               all_solutions = False,
               free_search = self.free_search,
               timeout = timeout,
               processes = self.threads)
+            print("Got a result from the CP solver...")
             break
           except minizinc.error.MiniZincError:
             print("The solver crashed... Retrying...") # It can happen with GeCode in parallel mode.

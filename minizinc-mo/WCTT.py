@@ -6,6 +6,8 @@ from tempfile import TemporaryDirectory
 import socket
 import pexpect
 
+socket.setdefaulttimeout(20.0)
+
 class WCTT:
   """Given an assignment of services to processors, we run a worst-case traversal time analysis to check if it is a solution w.r.t. WTCC.
      Here is the workflow to perform the analysis:
@@ -35,6 +37,12 @@ class WCTT:
     print("Connected to the WCTT server on the port: " + str(self.port))
     self.wctt_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.wctt_socket.connect((self.host, self.port))
+
+  def _restart_wctt_server(self):
+    print("Restarting the WCTT server due to timeout on socket operation...")
+    if not self.wctt_process.terminate(True):
+      print("Could not terminate the WCTT server... Will leave it running.")
+    self._start_wctt_server()
 
   def __init__(self, instance, config, verbose = True):
     self.instance = instance
@@ -87,12 +95,22 @@ class WCTT:
 
   def _topology2analysis(self, analysis_precision = 1):
     self._print("topology2analysis: " + self.output_wctt)
-    self.wctt_socket.sendall(analysis_precision.to_bytes(4, byteorder="big", signed=True))
-    result = ""
-    while result != "done" and result != "error":
-      result += self.wctt_socket.recv(1024).decode()
-    if result != "done":
-      sys.exit("Error analyzing the topology file in the temporary directory.\n")
+    try:
+      self.wctt_socket.settimeout(20.0)
+      self.wctt_socket.sendall(analysis_precision.to_bytes(4, byteorder="big", signed=True))
+      result = ""
+      while result != "done" and result != "error":
+        self.wctt_socket.settimeout(20.0)
+        tmp = self.wctt_socket.recv(1024).decode()
+        if tmp == "":
+          raise socket.timeout("Received empty string... throwing timeout to restart the server...")
+        result += tmp
+      if result != "done":
+        sys.exit("Error analyzing the topology file in the temporary directory.\n")
+    except socket.timeout as err:
+      print(err)
+      self._restart_wctt_server()
+      self._topology2analysis(analysis_precision)
 
   def create_conflict(self, sol, conflict_strategy, conflicts_combinator):
     """Analyse the result of the WCTT analysis (in `timing-analysis-results/topology_WCTT.csv`) and extract a conflict if it is unsuccessful, otherwise returns True."""
