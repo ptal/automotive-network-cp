@@ -27,6 +27,7 @@ def main():
   mzn_solver = Solver.lookup(config.solver_name)
   config.initialize_cores(mzn_solver)
   check_already_computed(config)
+  print("Start computing: " + config.uid())
   instance = Instance(mzn_solver, model)
   statistics = {}
   config.init_statistics(statistics)
@@ -39,11 +40,13 @@ def main():
     print("Problem completely explored.")
     statistics["exhaustive"] = True
   except TimeoutError:
+    print("Timeout triggered")
     pass
   except Exception as e:
+    print("Execption raised: " + str(e))
     logging.error(traceback.format_exc())
   statistics["hypervolume"] = pareto_front.hypervolume()
-  print(statistics)
+  print("end of solving statistics: " + str(statistics))
   write_statistics(config, statistics)
 
 def check_already_computed(config):
