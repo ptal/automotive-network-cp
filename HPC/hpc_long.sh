@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --time=50:00:00
+#SBATCH --time=48:00:00
 #SBATCH --partition=batch
 #SBATCH --nodes=1
 #SBATCH --mem=0
