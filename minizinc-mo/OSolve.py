@@ -61,7 +61,6 @@ class OSolve:
             break
           except minizinc.error.MiniZincError:
             print("The solver crashed... Retrying...") # It can happen with GeCode in parallel mode.
-            pass
       if self.timer != None:
         self.timer.pause()
       self.update_statistics(res)

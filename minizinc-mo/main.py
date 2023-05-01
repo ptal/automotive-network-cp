@@ -41,7 +41,6 @@ def main():
     statistics["exhaustive"] = True
   except TimeoutError:
     print("Timeout triggered")
-    pass
   except Exception as e:
     print("Execption raised: " + str(e))
     logging.error(traceback.format_exc())
