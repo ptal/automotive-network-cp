@@ -33,7 +33,7 @@ tasks=16
 cores=8
 tasks_counter=1
 algorithm="cusolve-mo"
-for f in ../data/dzn/topology100-14_005_u*.dzn;
+for f in ../data/dzn/topology75-14_005_u*.dzn;
 do
   if [ -f $f ]
   then
@@ -51,7 +51,7 @@ do
 done
 
 algorithm="osolve-mo-then-uf"
-for f in ../data/dzn/topology100-14_005_u*.dzn;
+for f in ../data/dzn/topology75-14_005_u*.dzn;
 do
   if [ -f $f ]
   then
