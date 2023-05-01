@@ -59,7 +59,7 @@ def check_already_computed(config):
 
 def build_solver(instance, config, statistics):
   osolve = build_osolver(instance, config, statistics)
-  osolve_mo = MO(instance, osolve)
+  osolve_mo = MO(instance, statistics, osolve)
   if config.algorithm == "osolve-mo":
     solver = osolve_mo
   else:
@@ -91,6 +91,7 @@ def csv_header(config):
   USolve.init_statistics(statistics)
   CUSolve.init_statistics(statistics)
   FilterWCTT.init_statistics(statistics)
+  MO.init_statistics(statistics)
   return list(statistics.keys())
 
 def create_summary_file(config):

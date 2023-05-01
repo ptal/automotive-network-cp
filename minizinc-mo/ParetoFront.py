@@ -164,10 +164,7 @@ class ParetoFront:
       return 0
     ref_point = np.array(self.instance["ref_point"])
     front = np.array([self.solutions[f]['objs'] for f in self.front])
-    # pymoo only takes into consideration minimization, so we negate the objectives to maximize.
     for i, minimize in enumerate(self.minimize_objs):
       if not minimize:
-        ref_point[i] = -ref_point[i]
-        for sol in front:
-          sol[i] = -sol[i]
+        assert False, ("We only support minimization for now.")
     return HV(ref_point=ref_point)(front)

@@ -48,7 +48,7 @@ constraint forall(link in NUM_LINKS)(charge[link] == (capacity[link] - slack[lin
 array[1..3] of var int: objs;
 constraint objs[1] = max(link in NUM_LINKS)(charge[link]);
 constraint objs[2] = max(l in LOCATIONS)(cpu_usage[l]);
-constraint objs[3] = sum(l in LOCATIONS)(cpu_usage[l] == 0);
+constraint objs[3] = sum(l in LOCATIONS)(cpu_usage[l] > 0);
 
 array[1..3] of bool: minimize_objs;
 array[1..3] of int: ref_point;
