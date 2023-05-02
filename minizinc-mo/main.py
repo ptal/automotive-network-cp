@@ -59,25 +59,26 @@ def check_already_computed(config):
 
 def build_solver(instance, config, statistics):
   osolve = build_osolver(instance, config, statistics)
-  osolve_mo = MO(instance, statistics, osolve)
   if config.algorithm == "osolve-mo":
-    solver = osolve_mo
+    osolve_mo = MO(instance, statistics, osolve)
+    return osolve_mo, osolve_mo.pareto_front
   else:
     wctt = WCTT(instance, config)
     if config.algorithm == "osolve-mo-then-uf":
+      osolve_mo = MO(instance, statistics, osolve)
       filterWCTT = FilterWCTT(statistics, osolve_mo.pareto_front, wctt)
-      solver = Sequence([osolve_mo, filterWCTT], True)
+      return Sequence([osolve_mo, filterWCTT], True), osolve_mo.pareto_front
     elif config.algorithm == "cusolve-mo":
       if config.uf_conflict_strategy == "not_assignment" and config.uf_conflicts_combinator == "or":
-        solver = USolve(instance, statistics, osolve_mo, \
+        solver = USolve(instance, statistics, osolve, \
           lambda res: wctt.analyse(res.solution, config.uf_conflict_strategy, config.uf_conflicts_combinator))
       else:
-        solver = CUSolve(instance, statistics, osolve_mo, \
+        solver = CUSolve(instance, statistics, osolve, \
           lambda res: wctt.analyse(res.solution, config.uf_conflict_strategy, config.uf_conflicts_combinator), \
           lambda res: wctt.create_conflict(res.solution, "not_assignment", "or"))
-    else:
-      exit(f"Unknown algorithm {config.algorithm}")
-  return solver, osolve_mo.pareto_front
+      osolve_mo = MO(instance, statistics, solver)
+      return osolve_mo, osolve_mo.pareto_front
+  exit(f"Unknown algorithm {config.algorithm}")
 
 def build_osolver(instance, config, statistics):
   free_search = config.cp_strategy == "free_search"
