@@ -34,7 +34,7 @@ do
     data_name=$(basename -- "$f" .dzn)
     log_file=$res_dir"/"$cp_strategy"_"$algorithm"_"$cp_timeout_sec"_"$data_name
     echo "Start srun...."$res_dir
-    srun --exclusive --cpu-bind=cores -n1 -c16 python3 main.py --model_mzn "../model/automotive-sat.mzn" --objectives_dzn "../model/objectives.dzn" --dzn_dir "../data/dzn/" --topology_dir "../data/raw-csv" --solver_name "$solver" --cp_timeout_sec $cp_timeout_sec --tmp_dir "$res_dir" --bin "../bin" --summary "$summary" --uf_conflict_strategy "na" --uf_conflicts_combinator "na" --cp_strategy="$cp_strategy" --fzn_optimisation_level 1 --algorithm "$algorithm" "$data_name" | tee -a $res_dir/"output.txt" &
+    srun --exclusive --cpu-bind=cores -n1 -c16 python3 main.py --model_mzn "../model/automotive-sat.mzn" --dzn_dir "../data/dzn/" --topology_dir "../data/raw-csv" --solver_name "$solver" --cp_timeout_sec $cp_timeout_sec --tmp_dir "$res_dir" --bin "../bin" --summary "$summary" --uf_conflict_strategy "na" --uf_conflicts_combinator "na" --cp_strategy="$cp_strategy" --fzn_optimisation_level 1 --algorithm "$algorithm" "$data_name" | tee -a $res_dir/"output.txt" &
     wait
     let tasks_counter++
   fi

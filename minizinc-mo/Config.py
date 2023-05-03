@@ -10,7 +10,6 @@ class Config:
                 description = 'Multi-objective constraint programming with WCTT. This program computes a Pareto front of the deployment problem on switch-based network.')
     parser.add_argument('instance_name')
     parser.add_argument('--model_mzn', required=True)
-    parser.add_argument('--objectives_dzn', required=True)
     parser.add_argument('--dzn_dir', required=True)
     parser.add_argument('--topology_dir', required=True)
     parser.add_argument('--solver_name', required=True)
@@ -31,7 +30,6 @@ class Config:
     Config.clean_dir_name(args.tmp_dir)
     self.data_name = args.instance_name
     self.input_mzn = args.model_mzn
-    self.objectives_dzn = args.objectives_dzn  # Just because parameters directly in the mzn files are not accessible through the Python API...
     self.input_dzn = args.dzn_dir + "/" + self.data_name + ".dzn"
     topology_name = self.data_name
     while topology_name[-1] != '_':

@@ -16,7 +16,7 @@ class ParetoFront:
 
   def __init__(self, instance):
     self.instance = instance
-    self.minimize_objs = [bool(obj) for obj in instance["minimize_objs"]]
+    self.minimize_objs = []
     self.solutions = []
     self.front = []
 
@@ -44,7 +44,7 @@ class ParetoFront:
           Bool:
             `True` if `x` dominates or is equal to `y`, `False` otherwise.
     """
-    return all([self.compare(int(obj1), int(obj2), m) for (obj1, obj2, m) in zip(x['objs'], y['objs'], self.minimize_objs)])
+    return all([self.compare(int(obj1), int(obj2), m) for (obj1, obj2, m) in zip(x['objs'], y['objs'], x['minimize_objs'])])
 
   def join_front(self, idx):
     """Update the Pareto front with the solution `self.solutions[idx]` if it is not dominated by any solution.
@@ -132,7 +132,7 @@ class ParetoFront:
           For instance, on a bi-objective problem `objs[1] > 1 \/ objs[2] < 10`
     """
     cons = []
-    for i, minimize in enumerate(self.minimize_objs):
+    for i, minimize in enumerate(x['minimize_objs']):
       obj_value = int(x["objs"][i])
       if minimize:
         cons.append(f"objs[{i+1}] < {obj_value}")
@@ -162,9 +162,9 @@ class ParetoFront:
     """Compute the hypervolume of the Pareto front. The hypervolume is computed using the reference point `ref_point`."""
     if self.front == []:
       return 0
-    ref_point = np.array(self.instance["ref_point"])
+    ref_point = np.array(self.solutions[0]["ref_point"])
     front = np.array([self.solutions[f]['objs'] for f in self.front])
-    for i, minimize in enumerate(self.minimize_objs):
+    for minimize in self.solutions[0]["minimize_objs"]:
       if not minimize:
         assert False, ("We only support minimization for now.")
     return HV(ref_point=ref_point)(front)

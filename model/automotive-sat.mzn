@@ -50,8 +50,15 @@ constraint objs[1] = max(link in NUM_LINKS)(charge[link]);
 constraint objs[2] = max(l in LOCATIONS)(cpu_usage[l]);
 constraint objs[3] = sum(l in LOCATIONS)(cpu_usage[l] > 0);
 
-array[1..3] of bool: minimize_objs;
-array[1..3] of int: ref_point;
+array[1..3] of var bool: minimize_objs;
+array[1..3] of var int: ref_point;
+
+constraint minimize_objs[1] = true;
+constraint minimize_objs[2] = true;
+constraint minimize_objs[3] = true;
+constraint ref_point[1] = 101;
+constraint ref_point[2] = 101;
+constraint ref_point[3] = 20;
 
 solve
 % :: int_search(services2locs, first_fail, indomain_min)
