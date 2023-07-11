@@ -20,7 +20,7 @@ source ../mo-mzn/hpcpy/bin/activate
 
 cd ../minizinc-mo
 cp_strategy="firstfail-random"
-uf_conflict_strategies=("not_assignment" "decrease_max_link_charge" "forbid_source_target_alloc_or" "decrease_hop_or" "decrease_hop_and")
+uf_conflict_strategies=("decrease_hop_and")
 uf_conflict_combinators=("and")
 cp_timeout_sec=36000
 solver="gecode"
@@ -33,7 +33,7 @@ tasks=16
 cores=8
 tasks_counter=1
 algorithm="cusolve-mo"
-for f in ../data/dzn/topology100-14_001_u*.dzn;
+for f in ../data/dzn/topology{50,75,100}-14_001_u*.dzn;
 do
   if [ -f $f ]
   then
